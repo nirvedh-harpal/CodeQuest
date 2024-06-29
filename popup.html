@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Codeforces Question Saver</title>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+  </head>
+  <body>
+    <h1>Save Question</h1>
+    <label for="folderSelectContainer">Select or Create Folder:</label>
+    <div id="folderSelectContainer">
+      <!-- Folder checkboxes will be dynamically added here -->
+    </div>
+    <input
+      type="text"
+      id="newFolderName"
+      placeholder="Enter new folder name"
+      style="display: none" />
+    <textarea id="note" placeholder="Enter a note"></textarea>
+    <input type="text" id="tags" placeholder="Enter tags separated by commas" />
+    <button id="saveButton">Save</button>
+    <button id="viewSavedQuestionsButton">View Saved Questions</button>
+    <script src="popup.js"></script>
+  </body>
+</html>
