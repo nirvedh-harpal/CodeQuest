@@ -1,25 +1,155 @@
 <!DOCTYPE html>
 <html>
+
   <head>
-    <title>Codeforces Question Saver Options</title>
+    <title>CodeQuest</title>
     <link rel="stylesheet" type="text/css" href="styles.css" />
+    <style>
+      #feedback {
+        font-size: larger;
+        padding: 8px;
+        background-color: rgb(50, 50, 255);
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .setup-instructions {
+        margin-top: 10px;
+      }
+
+      .setup-instructions ol {
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-left: 18px;
+      }
+
+      .setup-instructions ol>li {
+        margin-bottom: 22px;
+        margin-top: 10px;
+      }
+
+      .setup-instructions ul {
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+
+      #copyScriptButton {
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+    </style>
   </head>
-  <body style="margin: 50px">
-    <h1>Saved Questions Options</h1>
 
-    <div id="questionsContainer">
-      <!-- Questions will be dynamically populated here -->
+  <body style="margin: 2% 5%">
+
+    <div style="float: inline-end">
+      <button id="feedback">
+        <a href="https://forms.gle/9uAo3pG5XrjgfouB7" style="text-decoration: none; color: white"
+          target="_blank">Feedback</a>
+      </button>
     </div>
 
-    <!-- Modal for editing notes -->
-    <div id="noteModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <textarea id="noteInput" rows="5"></textarea>
-        <button id="saveNoteButton">Save Note</button>
+    <!-- Google Apps Script Configuration Section -->
+    <div id="configSection"
+      style="margin-bottom: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+      <h2 style="font-weight: 500; margin-top: 0;"> Configuration Setup</h2>
+
+      <!-- Setup Video Section (inside config setup) -->
+      <div style="margin-bottom: 10px;">
+        <div style="display:flex; flex-direction: row; align-items: center;">
+          <div style="display: flex; flex-direction: row; align-items: center;">
+            <h3 style="font-weight: 500;">Setup Tutorial Video &nbsp;</h3>
+          </div>
+          <div style="display: flex; flex-direction: row; align-items: center;">
+            <a href="https://drive.google.com/drive/folders/12bcslaZ4T4F3gCGjdt9ra5zb4gHpQhx1?usp=sharing"
+              target="_blank" style="font-size: 1rem; color: #1a73e8; text-decoration: underline;"><img
+                src="/img/link.png" style="width:1rem"><img></a>
+          </div>
+
+
+        </div>
       </div>
+
+      <!-- Step-by-step setup guide -->
+      <div class="setup-instructions">
+        <h3>Setup Instructions</h3>
+        <ol style="padding-left: 18px;">
+          <li><strong>Create a Google Sheet</strong><br>
+            <span>Go to <a href="https://sheets.google.com" target="_blank">Google Sheets</a> and create a new
+              spreadsheet for your questions.</span>
+          </li>
+          <li><strong>Open Apps Script Editor</strong><br>
+            <span>In your sheet, click <b>Extensions</b> <img src="/img/next.png" width="15px"
+                style="margin-bottom: -2px;"> <b>Apps Script</b>.</span>
+          </li>
+          <li><strong>Copy the Script Code</strong><br>
+            <span>Click the <b>Copy Script Code</b> button below to copy the complete Google Apps Script code to your
+              clipboard.</span>
+            <div style="display: flex; align-items: center; margin-top: 8px; gap: 10px;">
+              <button id="copyScriptButton">Copy Script Code</button>
+              <span id="copyStatus" style="display: none;">Copied to clipboard!</span>
+            </div>
+          </li>
+          <li><strong>Paste and Configure the Script</strong><br>
+            <ul>
+              <li>Paste the copied code into the Apps Script editor.</li>
+              <li>Find <b>const SHEET_ID = "your-sheet-id-here";</b> and replace <b>your-sheet-id-here</b> with your
+                actual sheet ID.</li>
+              <li><b>How to find your Sheet ID:</b> In your sheet URL, it is the part between <b>/d/</b> and
+                <b>/edit</b>.<br>
+                Example: <code>https://docs.google.com/spreadsheets/d/<b>SHEET_ID_HERE</b>/edit</code>
+              </li>
+              <li>You can also change the sheet tab name in the script if needed.</li>
+              <li>Save the script (Ctrl+S).</li>
+            </ul>
+          </li>
+          <li><strong>Deploy as Web App</strong><br>
+            <ul>
+              <li>Click <b>Deploy</b> <img src="/img/next.png" width="15px" style="margin-bottom: -2px;"> <b>New
+                  Deployment</b>.</li>
+              <li>For <b>Type</b>, select <b>Web app</b>.</li>
+              <li>Set <b>Execute as</b>: <b>Me</b>.</li>
+              <li>Set <b>Who has access</b>: <b>Only myself</b> (or <b>Anyone</b> if you want to use from other
+                accounts).</li>
+              <li>Click <b>Deploy</b>.</li>
+              <li>Authorize access when prompted (choose your Google account, click Advanced, then Go to project
+                (unsafe), and Allow).</li>
+            </ul>
+          </li>
+          <li><strong>Copy and Save the Web App URL</strong><br>
+            <span>After deployment, copy the Web App URL shown. Paste it in the field below and click <b>Save
+                Configuration</b>. The extension will automatically initialize your sheet with headers if it's
+              empty.</span>
+          </li>
+          <li><strong>Start Using CodeQuest!</strong><br>
+            <span>Go to the problems page and start solving questions. Use the extension to save your questions directly
+              to your Google Sheet.</span>
+
+          </li>
+        </ol>
+      </div>
+
+      <!-- Configuration input -->
+      <div style="margin-bottom: 15px;">
+        <label for="googleAppsScriptUrl"
+          style="display: block; font-weight: bold; margin-bottom: 5px; font-size: medium;">
+          Google Apps Script Web App URL:
+        </label>
+        <input type="url" id="googleAppsScriptUrl"
+          placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec" />
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button id="saveConfig">Save Configuration</button>
+      </div>
+
+      <div id="configStatus" style="margin-top: 10px; padding: 8px; border-radius: 4px; display: none;"></div>
     </div>
-    <img src="" alt="" />
+
+    <script src="cacheManager.js"></script>
+    <script src="googleSheetsAPI.js"></script>
     <script src="options.js"></script>
   </body>
+
 </html>

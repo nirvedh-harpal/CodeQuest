@@ -1,24 +1,343 @@
 <!DOCTYPE html>
 <html>
+
   <head>
-    <title>Codeforces Question Saver</title>
+    <title>CodeQuest</title>
     <link rel="stylesheet" type="text/css" href="styles.css" />
+    <link rel="stylesheet" href="libs/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+      html,
+      body {
+        font-family: "Raleway", sans-serif !important;
+        font-optical-sizing: auto;
+        font-weight: 500;
+        font-style: normal;
+        font-size: "12px" !important;
+      }
+
+      input,
+      select,
+      textarea,
+      button,
+      label,
+      .form-control,
+      .form-check-label,
+      .btn,
+      .multi-select-dropdown,
+      .msd-input-area,
+      .msd-arrow {
+        font-family: "Raleway", sans-serif !important;
+      }
+
+      .form-signin {
+        margin: 10%;
+        padding: 1rem;
+      }
+
+      .form-signin .form-floating:focus-within {
+        z-index: 2;
+      }
+
+      .form-signin input {
+        padding: 3px;
+      }
+
+      .bd-placeholder-img {
+        font-size: '12px' !important;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+
+      .form-control {
+        border-radius: 0 !important;
+      }
+
+      .form-floating>.form-control:not(:placeholder-shown)~label::after {
+        background-color: rgba(255, 255, 255, 0) !important;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+
+      .b-example-divider {
+        width: 100%;
+        height: 3rem;
+        background-color: rgba(0, 0, 0, 0.1);
+        border: solid rgba(0, 0, 0, 0.15);
+        border-width: 1px 0;
+        box-shadow: inset 0 0.5em 1.5em rgba(0, 0, 0, 0.1),
+          inset 0 0.125em 0.5em rgba(0, 0, 0, 0.15);
+      }
+
+      .b-example-vr {
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 100vh;
+      }
+
+      .bi {
+        vertical-align: -0.125em;
+        fill: currentColor;
+      }
+
+      .btn-bd-primary {
+        --bd-violet-bg: #712cf9;
+        --bd-violet-rgb: 112.520718, 44.062154, 249.437846;
+
+        --bs-btn-font-weight: 600;
+        --bs-btn-color: var(--bs-white);
+        --bs-btn-bg: var(--bd-violet-bg);
+        --bs-btn-border-color: var(--bd-violet-bg);
+        --bs-btn-hover-color: var(--bs-white);
+        --bs-btn-hover-bg: #6528e0;
+        --bs-btn-hover-border-color: #6528e0;
+        --bs-btn-focus-shadow-rgb: var(--bd-violet-rgb);
+        --bs-btn-active-color: var(--bs-btn-hover-color);
+        --bs-btn-active-bg: #5a23c8;
+        --bs-btn-active-border-color: #5a23c8;
+      }
+
+      .bd-mode-toggle {
+        z-index: 1500;
+      }
+
+      .bd-mode-toggle .dropdown-menu .active .bi {
+        display: block !important;
+      }
+
+      .container {
+        box-shadow: 0px 2px 5px 2px #c9c9c9;
+        width: 420px !important;
+        height: fit-content !important;
+        max-height: 500px;
+        overflow-y: auto;
+      }
+
+      .form-control,
+      .form-select {
+        border-radius: 4px !important;
+        margin-bottom: 6px;
+      }
+
+      #note {
+        font-size: smaller;
+        min-height: 60px;
+        resize: vertical;
+      }
+
+      .form-floating select {
+        padding-top: 1.625rem;
+        padding-bottom: 0.625rem;
+      }
+
+      /* Utility buttons at top */
+      .utility-buttons {
+        margin: -8px -8px 16px -8px;
+        padding: 8px;
+        background: #f8fafc;
+        border-radius: 8px;
+      }
+
+      .btn-utility {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .btn-utility:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+      }
+
+      .btn-utility-danger {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        background: #fee2e2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .btn-utility-danger:hover {
+        background: #fecaca;
+        color: #b91c1c;
+      }
+
+      /* Settings button */
+      .btn-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 18px;
+        transition: all 0.2s;
+        text-decoration: none;
+      }
+
+      .btn-icon:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+      }
+
+      /* Save button */
+      .btn-save {
+        width: 100%;
+        padding: 12px;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+        transition: all 0.2s;
+      }
+
+      .btn-save:hover {
+        background: #1d4ed8;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+      }
+
+      .d-flex.gap-2>button {
+        min-width: 0;
+        flex: 1;
+      }
+
+      /* Compact spacing */
+      .my-2 {
+        margin: 0.4rem 0 !important;
+      }
+
+      .form-floating {
+        margin-bottom: 0.4rem;
+      }
+
+      .form-check {
+        margin: 0.3rem 0 !important;
+      }
+    </style>
   </head>
+
   <body>
-    <h1>Save Question</h1>
-    <label for="folderSelectContainer">Select or Create Folder:</label>
-    <div id="folderSelectContainer">
-      <!-- Folder checkboxes will be dynamically added here -->
+    <div class="container d-flex align-items-center w-auto h-auto" id="parent">
+      <main class="form-signin w-100 m-auto">
+        <form>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 style="font-size: 2.2rem; font-weight: 500; margin: 0">
+              CodeQuest
+            </h1>
+            <button class="btn btn-icon" id="settingsButton" type="button" title="Settings"
+              style="padding: 8px; background: transparent; border: none; color: #64748b;">
+              <i class="bi bi-gear" style="font-size: 20px;"></i>
+            </button>
+          </div>
+          <!-- Utility Buttons at Top -->
+          <div class="utility-buttons d-flex gap-2 mb-2">
+            <button class="btn btn-utility" id="refreshDropdownsButton" type="button"
+              title="Refresh dropdown options from Google Sheets">
+              <!-- <i class="bi bi-arrow-clockwise" style="padding-right: 7px;"></i> -->
+              <img src="img/reload.png" alt="Trash Icon" style="width: 25px; height: 25px; margin-right: 7px;">
+              Refresh
+            </button>
+            <button class="btn btn-utility-danger" id="clearCacheButton" type="button" title="Clear all cached data">
+              <!-- <i class="bi bi-trash" style="padding-right: 7px;"></i> -->
+              <img src="img/delete.png" alt="Trash Icon" style="width: 25px; height: 25px; margin-right: 7px;">
+              Clear Cache
+            </button>
+          </div>
+
+          <!-- Folder Selection -->
+          <div class="my-2">
+            <label for="folderInput" style="color: #666; margin-bottom:0.5rem; display: block;">Folder</label>
+            <div id="folderDropdown"></div>
+          </div>
+
+          <!-- Question Title -->
+          <div class=" my-2">
+            <label for="questionTitle" style="color: #666; margin-bottom: 4px; display: block;">Question title</label>
+            <input type="text" class="form-control " style="padding: 6px 12px 6px 12px;" id="questionTitle"
+              placeholder="Enter or edit question title" />
+          </div>
+
+          <!-- Pattern -->
+          <div class="my-2">
+            <label for="patternDropdown" style="color: #666; margin-bottom: 4px; display: block;">Pattern</label>
+            <div id="patternDropdown"></div>
+          </div>
+          <!-- Tags -->
+          <div class="my-2">
+            <label for="tagsDropdown" style="color: #666; margin-bottom: 4px; display: block;">Tags</label>
+            <div id="tagsDropdown"></div>
+          </div>
+          <!-- Note -->
+          <div class="my-2">
+            <textarea id="note" class="form-control" placeholder="Enter a note or explanation" rows="3"></textarea>
+          </div>
+
+          <div class="d-flex diection-row justify-content-between align-items-center">
+            <!-- Level -->
+            <div class="my-2 w-50">
+              <label for="level" style="color: #666; margin-bottom: 4px; display: block;">Difficulty Level</label>
+
+              <select class="form-control" id="level">
+                <option value="Easy">Easy</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+            <div style="margin-right: 5%;"> <!-- Premium -->
+              <div class="form-check my-1">
+                <input class="form-check-input" type="checkbox" id="premium">
+                <label class="form-check-label" for="premium" style="color: #333; font-size: 14px;">
+                  Premium
+                </label>
+              </div>
+
+              <!-- Revision Needed -->
+              <div class="form-check my-1">
+                <input class="form-check-input" type="checkbox" id="revisionNeeded">
+                <label class="form-check-label" for="revisionNeeded" style="color: #333; font-size: 14px;">
+                  Revision Needed
+                </label>
+              </div>
+            </div>
+          </div>
+          <!-- Save Button -->
+          <button class="btn btn-save my-2" id="saveButton" type="submit">
+            Save Question
+          </button>
+        </form>
+      </main>
     </div>
-    <input
-      type="text"
-      id="newFolderName"
-      placeholder="Enter new folder name"
-      style="display: none" />
-    <textarea id="note" placeholder="Enter a note"></textarea>
-    <input type="text" id="tags" placeholder="Enter tags separated by commas" />
-    <button id="saveButton">Save</button>
-    <button id="viewSavedQuestionsButton">View Saved Questions</button>
+    <script src="libs/jquery-3.6.0.min.js"></script>
+    <script src="libs/bootstrap.bundle.min.js"></script>
+    <script src="multi-select-dropdown.js"></script>
+    <script src="cacheManager.js"></script>
+    <script src="googleSheetsAPI.js"></script>
     <script src="popup.js"></script>
   </body>
+
 </html>

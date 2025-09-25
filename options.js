@@ -1,207 +1,265 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const questionsContainer = document.getElementById("questionsContainer");
+document.addEventListener("DOMContentLoaded", async function () {
+  // Toaster notification function
+  function showToaster(message, type = "success") {
+    // Remove any existing toaster
+    const oldToaster = document.getElementById("cq-toaster");
+    if (oldToaster) oldToaster.remove();
 
-  if (!questionsContainer) {
-    console.error("Questions container not found");
-    return;
+    const toaster = document.createElement("div");
+    toaster.id = "cq-toaster";
+    toaster.style.position = "fixed";
+    toaster.style.top = "24px";
+    toaster.style.right = "32px";
+    toaster.style.zIndex = "9999";
+    toaster.style.minWidth = "220px";
+    toaster.style.maxWidth = "350px";
+    toaster.style.padding = "14px 22px";
+    toaster.style.borderRadius = "8px";
+    toaster.style.fontSize = "1rem";
+    toaster.style.boxShadow = "0 2px 12px rgba(0,0,0,0.12)";
+    toaster.style.transition = "opacity 0.3s";
+    toaster.style.opacity = "1";
+    toaster.style.pointerEvents = "none";
+    toaster.style.color = type === "error" ? "#721c24" : "#155724";
+    toaster.style.background = type === "error" ? "#f8d7da" : "#d4edda";
+    toaster.style.border =
+      type === "error" ? "1px solid #f5c6cb" : "1px solid #c3e6cb";
+    toaster.textContent = message;
+    document.body.appendChild(toaster);
+    setTimeout(() => {
+      toaster.style.opacity = "0";
+      setTimeout(() => toaster.remove(), 600);
+    }, 3500);
   }
+  try {
+    const configSection = document.getElementById("configSection");
+    const googleAppsScriptUrlInput = document.getElementById(
+      "googleAppsScriptUrl"
+    );
+    const saveConfigButton = document.getElementById("saveConfig");
+    const copyScriptButton = document.getElementById("copyScriptButton");
+    const configStatus = document.getElementById("configStatus");
 
-  // Function to render questions and folders
-  function renderQuestions() {
-    chrome.storage.sync.get({ questions: {} }, function (data) {
-      const questions = data.questions;
-      questionsContainer.innerHTML = ""; // Clear existing content
+    // Check required elements exist
+    if (!googleAppsScriptUrlInput || !saveConfigButton) {
+      showError(
+        "Critical error: Configuration elements not found. Please refresh the page."
+      );
+      return;
+    }
 
-      for (const folder in questions) {
-        const folderDiv = document.createElement("div");
-        folderDiv.className = "folder";
+    await loadConfiguration();
 
-        const folderTitle = document.createElement("h2");
-        folderTitle.innerText = folder;
-        folderTitle.classList.add("folderTitle");
+    // Fetch the Google Apps Script code from the file
+    fetch("docs/google-apps-script.gs")
+      .then((response) => response.text())
+      .then((text) => {
+        // Store the fetched content in a variable
+        const GOOGLE_APPS_SCRIPT_CODE = text;
 
-        // Show questions for this folder on clicking the folder title
-        folderTitle.addEventListener("click", function () {
-          const questionsList = folderDiv.querySelector(".questionsList");
-          questionsList.classList.toggle("hidden");
-        });
-
-        // Delete folder button
-        const deleteFolderButton = document.createElement("button");
-        deleteFolderButton.className = "deleteFolderButton";
-        deleteFolderButton.textContent = "Delete Folder";
-        deleteFolderButton.setAttribute("data-folder", folder);
-        deleteFolderButton.addEventListener("click", function (event) {
-          event.stopPropagation(); // Prevent collapsing folder
-          deleteFolder(folder);
-        });
-        folderTitle.appendChild(deleteFolderButton);
-
-        folderDiv.appendChild(folderTitle);
-
-        const questionsList = document.createElement("ul");
-        questionsList.className = "questionsList hidden";
-
-        questions[folder].forEach((question, index) => {
-          const questionItem = document.createElement("li");
-          questionItem.className = "questionItem";
-
-          const questionTitle = document.createElement("div");
-          questionTitle.className = "questionTitle";
-          questionTitle.innerHTML = `
-                  <a href="${question.url}" target="_blank">${
-            question.title
-          }</a>
-                  <span class="noteIcon" data-note="${
-                    question.note || ""
-                  }"> Note</span>
-                  
-                  <button class="deleteButton">Delete</button>
-                `;
-
-          // Open modal on clicking the note icon
-          questionTitle
-            .querySelector(".noteIcon")
-            .addEventListener("click", function () {
-              const note = question.note || "";
-              openNoteModal(note, (newNote) => {
-                question.note = newNote;
-                chrome.storage.sync.set({ questions }, function () {
-                  renderQuestions(); // Refresh the questions view after note update
-                });
-              });
-            });
-
-          // Delete question on clicking the delete button
-          questionTitle
-            .querySelector(".deleteButton")
-            .addEventListener("click", function (event) {
-              event.stopPropagation(); // Prevent the folder from collapsing
-              questions[folder].splice(index, 1);
-              chrome.storage.sync.set({ questions }, function () {
-                renderQuestions(); // Refresh the questions view
-              });
-            });
-
-          questionItem.appendChild(questionTitle);
-
-          if (question.tags && question.tags.length > 0) {
-            const tagsDiv = document.createElement("div");
-            tagsDiv.className = "tags";
-            question.tags.forEach((tag) => {
-              const tagSpan = document.createElement("span");
-              tagSpan.textContent = tag;
-              tagsDiv.appendChild(tagSpan);
-            });
-            questionItem.appendChild(tagsDiv);
+        // Copy script button functionality
+        const copyScriptButton = document.getElementById("copyScriptButton");
+        copyScriptButton.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
+            showToaster(
+              "Google Apps Script code copied to clipboard!",
+              "success"
+            );
+          } catch (error) {
+            // Fallback for browsers that don't support clipboard API
+            const textarea = document.createElement("textarea");
+            textarea.value = GOOGLE_APPS_SCRIPT_CODE;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            showToaster(
+              "Google Apps Script code copied to clipboard!",
+              "success"
+            );
           }
-
-          questionsList.appendChild(questionItem);
         });
+      })
+      .catch((err) => console.error("Failed to load GAS code file: ", err));
 
-        folderDiv.appendChild(questionsList);
-        questionsContainer.appendChild(folderDiv);
-      }
-    });
-  }
-
-  // Initial render of questions
-  renderQuestions();
-
-  // Function to handle deleting a folder
-  function deleteFolder(folder) {
-    chrome.storage.sync.get({ questions: {} }, function (data) {
-      const questions = data.questions;
-
-      if (questions[folder]) {
-        delete questions[folder];
-
-        chrome.storage.sync.set({ questions }, function () {
-          renderQuestions(); // Refresh the questions view after deletion
-        });
-      }
-    });
-  }
-
-  // Open modal dialog to edit note
-  // Open modal dialog to edit note
-  function openNoteModal(initialNote, onSave) {
-    const modal = document.getElementById("noteModal");
-    const noteInput = modal.querySelector("#noteInput");
-    const saveNoteBtn = modal.querySelector("#saveNoteButton");
-
-    noteInput.value = initialNote; // Set initial note value
-
-    // Display the modal
-    modal.style.display = "block";
-
-    // Close modal when the close button is clicked
-    const closeBtn = modal.querySelector(".close");
-    closeBtn.onclick = function () {
-      modal.style.display = "none";
-    };
-
-    // Save note and close modal on click on save note button
-    saveNoteBtn.onclick = function (event) {
-      event.preventDefault(); // Prevent default form submission behavior
-
-      const newNote = noteInput.value;
-      onSave(newNote);
-
-      // Close modal
-      modal.style.display = "none";
-      event.stopPropagation(); // Prevent event from propagating further
-    };
-
-    // Close modal if user clicks outside of it
-    window.onclick = function (event) {
-      if (event.target === modal) {
-        modal.style.display = "none";
-      }
-    };
-
-    // Prevent modal click from closing the folder
-    modal.onclick = function (event) {
-      event.stopPropagation();
-    };
-  }
-
-  // Event delegation for delete folder and delete question buttons
-  questionsContainer.addEventListener("click", function (event) {
-    const target = event.target;
-
-    // Handle delete folder button
-    if (target.classList.contains("deleteFolderButton")) {
-      const folderName = target.dataset.folder;
-      if (
-        confirm(`Are you sure you want to delete the folder "${folderName}"?`)
-      ) {
-        deleteFolder(folderName);
-      }
+    // Example success message function
+    function showSuccess(message) {
+      alert(message);
     }
 
-    // Handle delete question button
-    if (target.classList.contains("deleteButton")) {
-      const questionItem = target.closest(".questionItem");
-      const folderTitle =
-        questionItem.parentNode.parentNode.querySelector(".folderTitle");
+    // Save configuration functionality
+    saveConfigButton.addEventListener("click", async () => {
+      const webAppUrl = googleAppsScriptUrlInput.value.trim();
 
-      const folderName = folderTitle.innerText.trim();
-      const questionIndex = Array.from(
-        questionItem.parentNode.children
-      ).indexOf(questionItem);
+      if (!webAppUrl) {
+        showConfigStatus(
+          "Please enter a Google Apps Script Web App URL",
+          "error"
+        );
+        showToaster("Please enter a Google Apps Script Web App URL", "error");
+        return;
+      }
 
-      chrome.storage.sync.get({ questions: {} }, function (data) {
-        const questions = data.questions;
+      // Basic URL validation
+      if (!webAppUrl.startsWith("https://script.google.com/")) {
+        showConfigStatus(
+          "Please enter a valid Google Apps Script Web App URL (must start with https://script.google.com/)",
+          "error"
+        );
+        showToaster(
+          "Please enter a valid Google Apps Script Web App URL",
+          "error"
+        );
+        return;
+      }
 
-        if (questions[folderName]) {
-          questions[folderName].splice(questionIndex, 1);
+      // Disable button during save
+      saveConfigButton.disabled = true;
+      saveConfigButton.textContent = "Saving...";
 
-          chrome.storage.sync.set({ questions }, function () {
-            renderQuestions(); // Refresh the questions view after deletion
+      try {
+        try {
+          // Save configuration to chrome storage
+          await chrome.storage.sync.set({
+            googleAppsScriptUrl: webAppUrl,
           });
+
+          // Test the connection by setting the URL in googleSheetsAPI
+          await googleSheetsAPI.setWebAppUrl(webAppUrl);
+
+          showConfigStatus(
+            "Testing connection and checking sheet status...",
+            "success"
+          );
+
+          // Test if we can connect and check if sheet needs initialization
+          try {
+            const questionsResult = await googleSheetsAPI.getAllQuestions();
+            const hasQuestions =
+              questionsResult?.data?.questions &&
+              Object.keys(questionsResult.data.questions).some(
+                (folder) => questionsResult.data.questions[folder].length > 0
+              );
+
+            if (!hasQuestions) {
+              showConfigStatus(
+                "Sheet is empty. Initializing with headers and structure...",
+                "success"
+              );
+
+              const initResult = await googleSheetsAPI.initializeSheet();
+              if (
+                initResult.success ||
+                (!initResult.success && !initResult.message)
+              ) {
+                // Treat as success if success is true, or if no error message is present
+                showConfigStatus(
+                  "Configuration saved and sheet initialized successfully! You can now start saving questions.",
+                  "success"
+                );
+              } else {
+                // Only show error if there is a clear error message
+                const errorMsg = initResult.message
+                  ? initResult.message
+                  : "Sheet initialization may have succeeded, but no confirmation was received.";
+                showConfigStatus(
+                  `Configuration saved, but sheet initialization failed: ${errorMsg}`,
+                  "error"
+                );
+              }
+            } else {
+              showConfigStatus(
+                " Configuration saved successfully! Sheet already has data.",
+                "success"
+              );
+            }
+          } catch (error) {
+            showConfigStatus(
+              "Configuration saved, but automatic initialization failed. You may need to initialize manually.",
+              "error"
+            );
+          }
+        } catch (error) {
+          showConfigStatus(
+            `Error saving configuration: ${error.message}`,
+            "error"
+          );
         }
-      });
+      } catch (error) {
+        showConfigStatus(
+          "An unexpected error occurred while saving configuration.",
+          "error"
+        );
+      } finally {
+        // Re-enable button
+        saveConfigButton.disabled = false;
+        saveConfigButton.textContent = "Save Configuration";
+      }
+    });
+
+    function showConfigStatus(message, type) {
+      showToaster(message, type);
+      // Only show toaster, do not show message below button
+      showToaster(message, type);
     }
-  });
+
+    async function loadConfiguration() {
+      try {
+        const result = await chrome.storage.sync.get(["googleAppsScriptUrl"]);
+        if (result.googleAppsScriptUrl) {
+          googleAppsScriptUrlInput.value = result.googleAppsScriptUrl;
+          await googleSheetsAPI.setWebAppUrl(result.googleAppsScriptUrl);
+        }
+      } catch (error) {
+        showError(
+          "Failed to load configuration. Some features may not work properly."
+        );
+      }
+    }
+
+    function showError(message) {
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "alert alert-danger";
+      errorDiv.style =
+        "margin: 20px 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; border-radius: 4px;";
+      errorDiv.innerHTML = `<strong>Error:</strong> ${message}`;
+      configSection.insertAdjacentElement("afterend", errorDiv);
+
+      // Remove after 10 seconds
+      setTimeout(() => {
+        if (errorDiv.parentNode) {
+          errorDiv.remove();
+        }
+      }, 10000);
+    }
+
+    function showSuccess(message) {
+      const successDiv = document.createElement("div");
+      successDiv.className = "alert alert-success";
+      successDiv.style =
+        "margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; border-radius: 4px;";
+      successDiv.innerHTML = `<strong>Success:</strong> ${message}`;
+      configSection.insertAdjacentElement("afterend", successDiv);
+
+      // Remove after 5 seconds
+      setTimeout(() => {
+        if (successDiv.parentNode) {
+          successDiv.remove();
+        }
+      }, 5000);
+    }
+  } catch (error) {
+    // Fallback error display
+    document.body.innerHTML = `
+      <div style="padding: 20px; text-align: center;">
+        <h2 style="color: #dc3545;">Error</h2>
+        <p>A critical error occurred while loading the options page.</p>
+        <p>Please refresh the page and try again.</p>
+        <button onclick="location.reload()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Refresh Page
+        </button>
+      </div>
+    `;
+  }
 });
