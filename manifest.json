@@ -42,7 +42,7 @@
         "https://www.hackerrank.com/*",
         "https://www.geeksforgeeks.org/*"
       ],
-      "js": ["content.js"]
+      "js": ["tagMapper.js", "content.js"]
     }
   ],
   "options_page": "options.html"

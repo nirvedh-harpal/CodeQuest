@@ -53,6 +53,21 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Load auto-populate settings
     await loadAutoPopulateSettings();
 
+    // Load and setup tag mapping management
+    await setupTagMappingManagement();
+
+    // Add page unload handler to restore temporarily removed mappings
+    window.addEventListener('beforeunload', async () => {
+      if (temporarilyRemovedMapping) {
+        // Restore the mapping before page unload
+        try {
+          await tagMapper.addTagMapping(temporarilyRemovedMapping.canonical, temporarilyRemovedMapping.variants);
+        } catch (error) {
+          console.error('Error restoring mapping on page unload:', error);
+        }
+      }
+    });
+
     // Fetch the Google Apps Script code from the file
     fetch("docs/google-apps-script.gs")
       .then((response) => response.text())
@@ -282,6 +297,425 @@ document.addEventListener("DOMContentLoaded", async function () {
         document.getElementById("codeforcesMediumMax").value = 1800;
         document.getElementById("codechefEasyMax").value = 1200;
         document.getElementById("codechefMediumMax").value = 1800;
+      }
+    }
+
+    // Global variable to store temporarily removed mapping
+    let temporarilyRemovedMapping = null;
+
+    async function setupTagMappingManagement() {
+      // Initialize tag mapper
+      await tagMapper.initialize();
+      
+      // Load initial display
+      await refreshTagMappingsDisplay();
+      await populateDropdowns();
+      
+      // Setup event listeners for new UI
+      setupAddNewMappingSection();
+      setupUpdateMappingSection();
+      setupRemoveMappingSection();
+      setupManagementButtons();
+    }
+
+    function setupAddNewMappingSection() {
+      const addButton = document.getElementById("addNewMappingButton");
+      const canonicalInput = document.getElementById("newCanonicalTagInput");
+      const variantsInput = document.getElementById("newTagVariantsInput");
+
+      addButton.addEventListener("click", async () => {
+        const canonical = canonicalInput.value.trim().toLowerCase();
+        const variantsText = variantsInput.value.trim();
+        
+        if (!canonical) {
+          showToaster("Please enter a canonical tag form", "error");
+          return;
+        }
+        
+        if (!variantsText) {
+          showToaster("Please enter tag variants", "error");
+          return;
+        }
+
+        // Check if mapping already exists
+        const existingMap = tagMapper.getTagMap();
+        if (existingMap[canonical]) {
+          showToaster("Mapping already exists! Use the Update section to modify it.", "error");
+          return;
+        }
+        
+        const variants = variantsText.split(',').map(v => v.trim()).filter(v => v);
+        
+        try {
+          addButton.disabled = true;
+          addButton.textContent = "Adding...";
+          
+          const result = await tagMapper.addTagMapping(canonical, variants);
+          
+          if (result.success) {
+            showToaster("New tag mapping added successfully!", "success");
+            canonicalInput.value = "";
+            variantsInput.value = "";
+            
+            setTimeout(async () => {
+              await refreshTagMappingsDisplay();
+              await populateDropdowns();
+            }, 100);
+          } else {
+            showToaster("Failed to add tag mapping: " + result.error, "error");
+          }
+        } catch (error) {
+          showToaster("Error adding tag mapping", "error");
+        } finally {
+          addButton.disabled = false;
+          addButton.textContent = "✓ Add New Mapping";
+        }
+      });
+    }
+
+    function setupUpdateMappingSection() {
+      const selectDropdown = document.getElementById("updateMappingSelect");
+      const canonicalInput = document.getElementById("updateCanonicalInput");
+      const variantsInput = document.getElementById("updateTagVariantsInput");
+      const updateButton = document.getElementById("updateMappingButton");
+
+      // Handle dropdown selection
+      selectDropdown.addEventListener("change", async () => {
+        const selectedCanonical = selectDropdown.value;
+        
+        if (!selectedCanonical) {
+          canonicalInput.disabled = true;
+          canonicalInput.value = "";
+          variantsInput.disabled = true;
+          variantsInput.value = "";
+          updateButton.disabled = true;
+          
+          // Restore temporarily removed mapping if user deselects
+          if (temporarilyRemovedMapping) {
+            await restoreTemporaryMapping();
+          }
+          return;
+        }
+
+        try {
+          // Get current mapping
+          const tagMap = tagMapper.getTagMap();
+          const variants = tagMap[selectedCanonical];
+          
+          if (!variants) {
+            showToaster("Selected mapping not found", "error");
+            return;
+          }
+
+          // Store temporarily removed mapping
+          temporarilyRemovedMapping = {
+            canonical: selectedCanonical,
+            variants: variants
+          };
+
+          // Temporarily remove from display (but not from storage yet)
+          await temporaryRemoveMapping(selectedCanonical);
+          
+          // Populate inputs
+          canonicalInput.value = selectedCanonical;
+          canonicalInput.disabled = false;
+          variantsInput.value = variants.join(', ');
+          variantsInput.disabled = false;
+          updateButton.disabled = false;
+          
+          showToaster(`Mapping for "${selectedCanonical}" temporarily removed. Update or reload to restore.`, "info");
+          
+        } catch (error) {
+          showToaster("Error loading mapping for update", "error");
+        }
+      });
+
+      // Handle update button click
+      updateButton.addEventListener("click", async () => {
+        const selectedOriginalCanonical = selectDropdown.value;
+        const newCanonical = canonicalInput.value.trim().toLowerCase();
+        const newVariantsText = variantsInput.value.trim();
+        
+        if (!selectedOriginalCanonical || !newCanonical || !newVariantsText) {
+          showToaster("Please select a mapping and enter both canonical form and variants", "error");
+          return;
+        }
+        
+        const newVariants = newVariantsText.split(',').map(v => v.trim()).filter(v => v);
+        
+        if (newVariants.length === 0) {
+          showToaster("Please enter at least one variant", "error");
+          return;
+        }
+
+        // Check if new canonical form already exists (and it's different from original)
+        if (newCanonical !== selectedOriginalCanonical) {
+          const existingMap = tagMapper.getTagMap();
+          if (existingMap[newCanonical]) {
+            showToaster("New canonical form already exists! Choose a different name.", "error");
+            return;
+          }
+        }
+
+        try {
+          updateButton.disabled = true;
+          updateButton.textContent = "Updating...";
+          
+          // First permanently remove the old mapping
+          await tagMapper.removeTagMapping(selectedOriginalCanonical);
+          
+          // Then add the new mapping with potentially new canonical form
+          const result = await tagMapper.addTagMapping(newCanonical, newVariants);
+          
+          if (result.success) {
+            showToaster("Tag mapping updated successfully!", "success");
+            
+            // Clear temporary state
+            temporarilyRemovedMapping = null;
+            selectDropdown.value = "";
+            canonicalInput.value = "";
+            canonicalInput.disabled = true;
+            variantsInput.value = "";
+            variantsInput.disabled = true;
+            updateButton.disabled = true;
+            
+            setTimeout(async () => {
+              await refreshTagMappingsDisplay();
+              await populateDropdowns();
+            }, 100);
+          } else {
+            showToaster("Failed to update mapping: " + result.error, "error");
+            // Restore the temporarily removed mapping on failure
+            await restoreTemporaryMapping();
+          }
+        } catch (error) {
+          showToaster("Error updating tag mapping", "error");
+          await restoreTemporaryMapping();
+        } finally {
+          updateButton.disabled = false;
+          updateButton.textContent = "📝 Update Mapping";
+        }
+      });
+    }
+
+    function setupRemoveMappingSection() {
+      const selectDropdown = document.getElementById("removeMappingSelect");
+      const removeButton = document.getElementById("removeMappingButton");
+
+      selectDropdown.addEventListener("change", () => {
+        removeButton.disabled = !selectDropdown.value;
+      });
+
+      removeButton.addEventListener("click", async () => {
+        const selectedCanonical = selectDropdown.value;
+        
+        if (!selectedCanonical) {
+          showToaster("Please select a mapping to remove", "error");
+          return;
+        }
+        
+        const confirmed = confirm(`Are you sure you want to permanently remove the mapping for "${selectedCanonical}"?`);
+        if (!confirmed) return;
+        
+        try {
+          removeButton.disabled = true;
+          removeButton.textContent = "Removing...";
+          
+          const result = await tagMapper.removeTagMapping(selectedCanonical);
+          
+          if (result.success) {
+            showToaster("Tag mapping removed successfully!", "success");
+            selectDropdown.value = "";
+            removeButton.disabled = true;
+            
+            setTimeout(async () => {
+              await refreshTagMappingsDisplay();
+              await populateDropdowns();
+            }, 100);
+          } else {
+            showToaster("Failed to remove tag mapping: " + result.error, "error");
+          }
+        } catch (error) {
+          showToaster("Error removing tag mapping", "error");
+        } finally {
+          removeButton.disabled = false;
+          removeButton.textContent = "🗑️ Remove";
+        }
+      });
+    }
+
+    function setupManagementButtons() {
+      const refreshButton = document.getElementById("refreshTagMappingsButton");
+      const resetButton = document.getElementById("resetTagMappingsButton");
+
+      refreshButton.addEventListener("click", async () => {
+        // Restore any temporarily removed mapping before refresh
+        if (temporarilyRemovedMapping) {
+          await restoreTemporaryMapping();
+        }
+        
+        await refreshTagMappingsDisplay();
+        await populateDropdowns();
+        showToaster("Tag mappings refreshed", "success");
+      });
+
+      resetButton.addEventListener("click", async () => {
+        const confirmed = confirm("Are you sure you want to reset all tag mappings to defaults? This will remove any custom mappings you've added.");
+        if (!confirmed) return;
+        
+        try {
+          resetButton.disabled = true;
+          resetButton.textContent = "Resetting...";
+          
+          const result = await tagMapper.resetToDefault();
+          
+          if (result.success) {
+            showToaster("Tag mappings reset to defaults successfully!", "success");
+            temporarilyRemovedMapping = null;
+            
+            // Clear all inputs
+            document.getElementById("newCanonicalTagInput").value = "";
+            document.getElementById("newTagVariantsInput").value = "";
+            document.getElementById("updateMappingSelect").value = "";
+            document.getElementById("updateCanonicalInput").value = "";
+            document.getElementById("updateCanonicalInput").disabled = true;
+            document.getElementById("updateTagVariantsInput").value = "";
+            document.getElementById("updateTagVariantsInput").disabled = true;
+            document.getElementById("updateMappingButton").disabled = true;
+            document.getElementById("removeMappingSelect").value = "";
+            document.getElementById("removeMappingButton").disabled = true;
+            
+            setTimeout(async () => {
+              await refreshTagMappingsDisplay();
+              await populateDropdowns();
+            }, 100);
+          } else {
+            showToaster("Failed to reset tag mappings: " + result.error, "error");
+          }
+        } catch (error) {
+          showToaster("Error resetting tag mappings", "error");
+        } finally {
+          resetButton.disabled = false;
+          resetButton.textContent = "↺ Reset to Defaults";
+        }
+      });
+    }
+
+    async function populateDropdowns() {
+      const updateSelect = document.getElementById("updateMappingSelect");
+      const removeSelect = document.getElementById("removeMappingSelect");
+      
+      try {
+        const tagMap = tagMapper.getTagMap();
+        const sortedMappings = Object.entries(tagMap).sort();
+        
+        // Clear existing options (except the default ones)
+        updateSelect.innerHTML = '<option value="">-- Select a mapping --</option>';
+        removeSelect.innerHTML = '<option value="">-- Select a mapping to remove --</option>';
+        
+        // Add options for each mapping
+        sortedMappings.forEach(([canonical, variants]) => {
+          const variantsPreview = variants.slice(0, 3).join(', ') + (variants.length > 3 ? '...' : '');
+          
+          const updateOption = document.createElement('option');
+          updateOption.value = canonical;
+          updateOption.textContent = `${canonical} → ${variantsPreview}`;
+          updateSelect.appendChild(updateOption);
+          
+          const removeOption = document.createElement('option');
+          removeOption.value = canonical;
+          removeOption.textContent = `${canonical} → ${variantsPreview}`;
+          removeSelect.appendChild(removeOption);
+        });
+        
+      } catch (error) {
+        console.error('Error populating dropdowns:', error);
+      }
+    }
+
+    async function temporaryRemoveMapping(canonical) {
+      // This just updates the display, not the actual storage
+      const displayDiv = document.getElementById("tagMappingsDisplay");
+      const currentHTML = displayDiv.innerHTML;
+      
+      // Create a temporary display that excludes the selected mapping
+      const tagMap = tagMapper.getTagMap();
+      const tempMap = { ...tagMap };
+      delete tempMap[canonical];
+      
+      await displayMappings(tempMap);
+    }
+
+    async function restoreTemporaryMapping() {
+      if (!temporarilyRemovedMapping) return;
+      
+      try {
+        // Re-add the temporarily removed mapping
+        await tagMapper.addTagMapping(temporarilyRemovedMapping.canonical, temporarilyRemovedMapping.variants);
+        
+        // Clear temporary state
+        temporarilyRemovedMapping = null;
+        
+        // Reset update section UI
+        document.getElementById("updateMappingSelect").value = "";
+        document.getElementById("updateCanonicalInput").value = "";
+        document.getElementById("updateCanonicalInput").disabled = true;
+        document.getElementById("updateTagVariantsInput").value = "";
+        document.getElementById("updateTagVariantsInput").disabled = true;
+        document.getElementById("updateMappingButton").disabled = true;
+        
+        // Refresh display
+        await refreshTagMappingsDisplay();
+        await populateDropdowns();
+        
+        showToaster("Temporarily removed mapping restored", "info");
+      } catch (error) {
+        console.error('Error restoring temporary mapping:', error);
+      }
+    }
+
+    async function displayMappings(mappings) {
+      const displayDiv = document.getElementById("tagMappingsDisplay");
+      const sortedMappings = Object.entries(mappings).sort();
+      
+      if (sortedMappings.length === 0) {
+        displayDiv.innerHTML = '<p style="color: #666;">No tag mappings found.</p>';
+        return;
+      }
+      
+      let html = '<div style="font-size: 14px;">';
+      sortedMappings.forEach(([canonical, variants]) => {
+        const variantsText = Array.isArray(variants) ? variants.join(', ') : variants.toString();
+        html += `
+          <div class="tag-mapping-item" 
+               data-canonical="${canonical}" 
+               data-variants="${variantsText}"
+               style="margin-bottom: 8px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: white;">
+            <strong style="color: #0056b3;">${canonical}</strong> → 
+            <span style="color: #666;">${variantsText}</span>
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      displayDiv.innerHTML = html;
+    }
+
+    async function refreshTagMappingsDisplay() {
+      try {
+        // Force tagMapper to reload from storage to get fresh data
+        await tagMapper.initialize();
+        
+        const tagMap = tagMapper.getTagMap();
+        console.log('Current tag mappings:', tagMap); // Debug log
+        
+        await displayMappings(tagMap);
+        console.log(`Displayed ${Object.keys(tagMap).length} tag mappings`); // Debug log
+        
+      } catch (error) {
+        const displayDiv = document.getElementById("tagMappingsDisplay");
+        displayDiv.innerHTML = '<p style="color: #dc3545;">Error loading tag mappings.</p>';
+        console.error('Error refreshing tag mappings display:', error);
       }
     }
 

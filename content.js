@@ -351,6 +351,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           try {
             const data = await getAutoPopulateData();
             
+            // Normalize tags using tag mapper
+            if (data.tags && data.tags.length > 0 && tagMapper) {
+              await tagMapper.initialize(); // Ensure tag mapper is ready
+              data.tags = tagMapper.normalizeTags(data.tags);
+            }
+            
             // If we have a rating but no difficulty, map it using settings
             if (data.rating && !data.difficulty && request.settings) {
               data.difficulty = mapRatingToDifficulty(data.rating, request.settings);
