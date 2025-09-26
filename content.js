@@ -71,6 +71,268 @@ function getTitle() {
   }
 }
 
+// Auto-populate functions for different platforms
+async function getAutoPopulateData() {
+  try {
+    const url = window.location.href;
+    let data = { tags: [], difficulty: "", rating: null };
+
+    console.log("CodeQuest: Attempting auto-populate for URL:", url);
+
+    if (url.startsWith("https://leetcode.com")) {
+      data = await getLeetCodeData();
+    } else if (url.startsWith("https://codeforces.com")) {
+      data = await getCodeforcesData();
+    } else if (url.startsWith("https://www.geeksforgeeks.org")) {
+      data = await getGFGData();
+    } else if (url.startsWith("https://www.interviewbit.com")) {
+      data = await getInterviewBitData();
+    } else if (url.startsWith("https://www.codechef.com")) {
+      data = await getCodeChefData();
+    }
+
+    console.log("CodeQuest: Auto-populate result:", data);
+    return data;
+  } catch (error) {
+    console.error("CodeQuest: Auto-populate error:", error);
+    return { tags: [], difficulty: "", rating: null };
+  }
+}
+
+async function getLeetCodeData() {
+  try {
+    const slug = window.location.pathname.split("/")[2]; // Extract slug like "two-sum"
+    if (!slug) return { tags: [], difficulty: "", rating: null };
+
+    const query = `
+      query questionData($titleSlug: String!) {
+        question(titleSlug: $titleSlug) {
+          difficulty
+          topicTags { name }
+        }
+      }`;
+
+    const response = await fetch("https://leetcode.com/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { titleSlug: slug } })
+    });
+
+    if (!response.ok) throw new Error("Network response was not ok");
+
+    const data = await response.json();
+    if (!data.data?.question) throw new Error("Invalid response data");
+
+    return {
+      difficulty: data.data.question.difficulty || "",
+      tags: data.data.question.topicTags?.map(tag => tag.name) || [],
+      rating: null
+    };
+  } catch (error) {
+    console.error("LeetCode extraction error:", error);
+    return { tags: [], difficulty: "", rating: null };
+  }
+}
+
+async function getCodeforcesData() {
+  try {
+    // Check if we're on a problem page first
+    const path = window.location.pathname.split("/");
+    if (path.length < 5 || !path.includes("problem")) {
+      return { tags: [], difficulty: "", rating: null };
+    }
+
+    const contestId = path[3]; // "2143"
+    const index = path[4];     // "D2"
+
+    if (!contestId || !index) {
+      return { tags: [], difficulty: "", rating: null };
+    }
+
+    // Use Codeforces API to get problem data
+    const response = await fetch("https://codeforces.com/api/problemset.problems");
+    if (!response.ok) throw new Error("Failed to fetch from Codeforces API");
+
+    const data = await response.json();
+    if (data.status !== "OK") throw new Error("API returned error status");
+
+    // Find the specific problem
+    const problem = data.result.problems.find(
+      p => String(p.contestId) === contestId && p.index === index
+    );
+
+    if (!problem) {
+      console.log("CodeQuest: Problem not found in API (maybe gym problem or unrated)");
+      return { tags: [], difficulty: "", rating: null };
+    }
+
+    return {
+      difficulty: "", // Will be mapped from rating
+      tags: problem.tags || [],
+      rating: problem.rating || null
+    };
+  } catch (error) {
+    console.error("Codeforces extraction error:", error);
+    // Fallback to DOM scraping if API fails
+    return await getCodeforcesDataFromDOM();
+  }
+}
+
+// Fallback method for Codeforces when API fails
+async function getCodeforcesDataFromDOM() {
+  try {
+    // Extract rating from tag-box elements as fallback
+    const tagElements = document.querySelectorAll(".tag-box");
+    let rating = null;
+    const tags = [];
+
+    tagElements.forEach(tagEl => {
+      const tagText = tagEl.innerText.trim();
+      
+      // Check if this is a rating tag (contains *)
+      const ratingMatch = tagText.match(/\*(\d+)/);
+      if (ratingMatch) {
+        rating = parseInt(ratingMatch[1]);
+      } else if (tagText && !tagText.includes('*')) {
+        // This is a topic tag
+        tags.push(tagText);
+      }
+    });
+
+    // Also try to get tags from .roundbox .tag elements
+    const roundboxTags = document.querySelectorAll(".roundbox .tag");
+    roundboxTags.forEach(tagEl => {
+      const tagText = tagEl.innerText.trim();
+      if (tagText && !tagText.includes('*') && !tags.includes(tagText)) {
+        tags.push(tagText);
+      }
+    });
+
+    return {
+      difficulty: "",
+      tags,
+      rating
+    };
+  } catch (error) {
+    console.error("Codeforces DOM extraction error:", error);
+    return { tags: [], difficulty: "", rating: null };
+  }
+}
+
+async function getGFGData() {
+  try {
+    // Wait a bit for dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Get Topic Tags using the exact selector from your script
+    const topicSection = [...document.querySelectorAll(".problems_accordion_tags__JJ2DX")]
+      .find(sec => sec.querySelector("strong")?.innerText.trim() === "Topic Tags");
+
+    const tags = topicSection
+      ? [...topicSection.querySelectorAll(".ui.labels a")].map(el => el.innerText.trim())
+      : [];
+
+    // Get Difficulty from the header description div
+    const difficulty = document.querySelector(
+      ".problems_header_description__t_8PB span strong"
+    )?.innerText.trim() || "";
+
+    console.log("GFG extraction - Difficulty:", difficulty, "Tags:", tags);
+
+    return {
+      difficulty,
+      tags,
+      rating: null
+    };
+  } catch (error) {
+    console.error("GFG extraction error:", error);
+    return { tags: [], difficulty: "", rating: null };
+  }
+}
+
+async function getInterviewBitData() {
+  try {
+    // Wait for dynamic content
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Get Topic Tags from breadcrumb using the exact selector from your script
+    const tags = [...document.querySelectorAll(".ib-breadcrumb__item--link")]
+      .map(el => el.innerText.trim())
+      .filter(t => t !== "Programming"); // Filter out generic "Programming" tag
+
+    // Get Difficulty
+    const difficultyEl = document.querySelector(".p-difficulty-level");
+    const difficulty = difficultyEl ? difficultyEl.innerText.trim() : "";
+
+    console.log("InterviewBit extraction - Difficulty:", difficulty, "Tags:", tags);
+
+    return {
+      difficulty,
+      tags,
+      rating: null
+    };
+  } catch (error) {
+    console.error("InterviewBit extraction error:", error);
+    return { tags: [], difficulty: "", rating: null };
+  }
+}
+
+async function getCodeChefData() {
+  try {
+    // Wait for page to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Get Difficulty (rating) using the exact selector from your script
+    const difficultyEl = document.querySelector("._difficulty-ratings__box_a2x1m_503 ._value_a2x1m_395");
+    let rating = null;
+
+    if (difficultyEl) {
+      const ratingText = difficultyEl.innerText.trim();
+      const ratingMatch = ratingText.match(/(\d+)/);
+      if (ratingMatch) {
+        rating = parseInt(ratingMatch[1]);
+      }
+    }
+
+    // Click expand button if collapsed (exact logic from your script)
+    const expandBtn = document.querySelector("._expand__container_a2x1m_756");
+    if (expandBtn && expandBtn.innerText.includes("Expand")) {
+      expandBtn.click();
+    }
+
+    // Wait for tags to render (matching your 300ms delay)
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Extract tags using the exact selector from your script
+    const tags = [...document.querySelectorAll("._tag-list-map__box_a2x1m_527 ._tagList__item_a2x1m_539")]
+      .map(el => el.innerText.trim());
+
+    console.log("CodeChef extraction - Rating:", rating, "Tags:", tags);
+
+    return {
+      difficulty: "", // Will be mapped from rating
+      tags,
+      rating
+    };
+  } catch (error) {
+    console.error("CodeChef extraction error:", error);
+    return { tags: [], difficulty: "", rating: null };
+  }
+}
+
+// Helper function to map rating to difficulty level
+function mapRatingToDifficulty(rating, settings) {
+  if (!rating || !settings) return "";
+  
+  if (rating <= settings.easyMaxRating) {
+    return "Easy";
+  } else if (rating <= settings.mediumMaxRating) {
+    return "Medium";
+  } else {
+    return "Hard";
+  }
+}
+
 // Enhanced message listener with error handling
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
@@ -90,6 +352,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             success: false,
           });
         }
+        break;
+
+      case "getAutoPopulateData":
+        // Handle async auto-populate data extraction
+        (async () => {
+          try {
+            const data = await getAutoPopulateData();
+            
+            // If we have a rating but no difficulty, map it using settings
+            if (data.rating && !data.difficulty && request.settings) {
+              data.difficulty = mapRatingToDifficulty(data.rating, request.settings);
+            }
+            
+            sendResponse({ 
+              success: true, 
+              data: data
+            });
+          } catch (error) {
+            sendResponse({
+              error: "Failed to extract auto-populate data from page",
+              success: false,
+            });
+          }
+        })();
+        return true; // Indicate asynchronous response
         break;
 
       case "ping":

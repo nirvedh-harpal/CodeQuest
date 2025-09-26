@@ -50,6 +50,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     await loadConfiguration();
 
+    // Load auto-populate settings
+    await loadAutoPopulateSettings();
+
     // Fetch the Google Apps Script code from the file
     fetch("docs/google-apps-script.gs")
       .then((response) => response.text())
@@ -198,6 +201,34 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     });
 
+    // Save auto-populate settings functionality
+    const saveAutoPopulateButton = document.getElementById("saveAutoPopulateSettings");
+    const enableAutopopulate = document.getElementById("enableAutopopulate");
+    const easyMaxRating = document.getElementById("easyMaxRating");
+    const mediumMaxRating = document.getElementById("mediumMaxRating");
+
+    saveAutoPopulateButton.addEventListener("click", async () => {
+      const settings = {
+        enableAutopopulate: enableAutopopulate.checked,
+        easyMaxRating: parseInt(easyMaxRating.value) || 1200,
+        mediumMaxRating: parseInt(mediumMaxRating.value) || 1800
+      };
+
+      // Validation
+      if (settings.easyMaxRating >= settings.mediumMaxRating) {
+        showToaster("Easy max rating must be less than Medium max rating", "error");
+        return;
+      }
+
+      try {
+        // Save to chrome storage
+        await chrome.storage.sync.set({ autoPopulateSettings: settings });
+        showToaster("Auto-populate settings saved successfully!", "success");
+      } catch (error) {
+        showToaster("Failed to save auto-populate settings", "error");
+      }
+    });
+
     function showConfigStatus(message, type) {
       showToaster(message, type);
       // Only show toaster, do not show message below button
@@ -215,6 +246,26 @@ document.addEventListener("DOMContentLoaded", async function () {
         showError(
           "Failed to load configuration. Some features may not work properly."
         );
+      }
+    }
+
+    async function loadAutoPopulateSettings() {
+      try {
+        const result = await chrome.storage.sync.get(["autoPopulateSettings"]);
+        const settings = result.autoPopulateSettings || {
+          enableAutopopulate: false,
+          easyMaxRating: 1200,
+          mediumMaxRating: 1800
+        };
+
+        document.getElementById("enableAutopopulate").checked = settings.enableAutopopulate;
+        document.getElementById("easyMaxRating").value = settings.easyMaxRating;
+        document.getElementById("mediumMaxRating").value = settings.mediumMaxRating;
+      } catch (error) {
+        // Use default values if loading fails
+        document.getElementById("enableAutopopulate").checked = false;
+        document.getElementById("easyMaxRating").value = 1200;
+        document.getElementById("mediumMaxRating").value = 1800;
       }
     }
 

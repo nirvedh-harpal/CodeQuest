@@ -52,6 +52,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       // Setup event listeners
       setupEventListeners(currentTab);
 
+      // Check if auto-populate should be enabled for current tab
+      await checkAndSetupAutoPopulate(currentTab);
+
       // Get current page title
       // Get current page title
       chrome.tabs.sendMessage(
@@ -114,6 +117,131 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Update tags dropdown
     if (window.tagsDropdown) {
       window.tagsDropdown.updateItems(options.tags || []);
+    }
+  }
+
+  async function checkAndSetupAutoPopulate(currentTab) {
+    try {
+      // Check if auto-populate is enabled
+      const result = await chrome.storage.sync.get(["autoPopulateSettings"]);
+      const settings = result.autoPopulateSettings || { enableAutopopulate: false };
+      
+      const autoPopulateButton = document.getElementById("autoPopulateButton");
+      
+      if (settings.enableAutopopulate && isAutoPopulateSupportedSite(currentTab.url)) {
+        // Show auto-populate button
+        autoPopulateButton.style.display = "inline-flex";
+        
+        // Set up click handler
+        autoPopulateButton.addEventListener("click", async () => {
+          await handleAutoPopulate(currentTab, settings);
+        });
+      } else {
+        // Hide auto-populate button
+        autoPopulateButton.style.display = "none";
+      }
+    } catch (error) {
+      // Hide button on error
+      const autoPopulateButton = document.getElementById("autoPopulateButton");
+      if (autoPopulateButton) {
+        autoPopulateButton.style.display = "none";
+      }
+    }
+  }
+
+  function isAutoPopulateSupportedSite(url) {
+    const supportedSites = [
+      "https://leetcode.com",
+      "https://codeforces.com",
+      "https://www.geeksforgeeks.org",
+      "https://www.interviewbit.com",
+      "https://www.codechef.com"
+    ];
+    
+    return supportedSites.some(site => url.startsWith(site));
+  }
+
+  async function handleAutoPopulate(currentTab, settings) {
+    const autoPopulateButton = document.getElementById("autoPopulateButton");
+    
+    try {
+      // Show loading state
+      autoPopulateButton.disabled = true;
+      autoPopulateButton.innerHTML = '<i class="bi bi-arrow-clockwise" style="font-size: 12px; margin-right: 4px; animation: spin 1s linear infinite;"></i>Loading...';
+      
+      // Add CSS for spinner animation if not already added
+      if (!document.getElementById("spinner-style")) {
+        const style = document.createElement("style");
+        style.id = "spinner-style";
+        style.textContent = `
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Send message to content script to extract data
+      chrome.tabs.sendMessage(
+        currentTab.id,
+        { 
+          action: "getAutoPopulateData",
+          settings: settings
+        },
+        function (response) {
+          try {
+            if (!chrome.runtime.lastError && response?.success && response.data) {
+              const { tags, difficulty } = response.data;
+              
+              // Populate tags if available
+              if (tags && tags.length > 0 && window.tagsDropdown) {
+                // Clear existing tags and set new ones
+                window.tagsDropdown.clearValues();
+                window.tagsDropdown.setValues(tags);
+              }
+              
+              // Populate difficulty if available
+              if (difficulty) {
+                const difficultySelect = document.getElementById("level");
+                if (difficultySelect) {
+                  // Map difficulty to our values
+                  const difficultyMapping = {
+                    "Easy": "Easy",
+                    "Medium": "Medium", 
+                    "Hard": "Hard",
+                    "easy": "Easy",
+                    "medium": "Medium",
+                    "hard": "Hard"
+                  };
+                  
+                  const mappedDifficulty = difficultyMapping[difficulty] || difficulty;
+                  if (["Easy", "Medium", "Hard"].includes(mappedDifficulty)) {
+                    difficultySelect.value = mappedDifficulty;
+                  }
+                }
+              }
+              
+              showToast(`Auto-populated ${tags.length} tags${difficulty ? ' and difficulty' : ''}!`, "success");
+              
+            } else {
+              showToast("Could not extract data from this page", "error");
+            }
+          } catch (error) {
+            showToast("Error processing auto-populate data", "error");
+          } finally {
+            // Reset button state
+            autoPopulateButton.disabled = false;
+            autoPopulateButton.innerHTML = '<i class="bi bi-magic" style="font-size: 12px; margin-right: 4px;"></i>Auto-Fill';
+          }
+        }
+      );
+      
+    } catch (error) {
+      showToast("Auto-populate failed", "error");
+      // Reset button state
+      autoPopulateButton.disabled = false;
+      autoPopulateButton.innerHTML = '<i class="bi bi-magic" style="font-size: 12px; margin-right: 4px;"></i>Auto-Fill';
     }
   }
 
@@ -310,15 +438,17 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // Helper functions
   function isSupportedProblemPage(url) {
-    return (
-      url.startsWith("https://leetcode.com/") ||
-      url.startsWith("https://atcoder.jp/") ||
-      url.startsWith("https://codeforces.com/") ||
-      url.startsWith("https://www.interviewbit.com/") ||
-      url.startsWith("https://www.hackerrank.com/") ||
-      url.startsWith("https://www.geeksforgeeks.org/") ||
-      url.startsWith("https://www.codechef.com/")
-    );
+    const supportedPlatforms = [
+      { pattern: /^https:\/\/leetcode\.com\/problems\//, name: "LeetCode" },
+      { pattern: /^https:\/\/atcoder\.jp\/contests\/[^\/]+\/tasks\//, name: "AtCoder" },
+      { pattern: /^https:\/\/codeforces\.com\/(problemset\/problem|contest\/\d+\/problem)\//, name: "Codeforces" },
+      { pattern: /^https:\/\/www\.interviewbit\.com\/problems\//, name: "InterviewBit" },
+      { pattern: /^https:\/\/www\.hackerrank\.com\/challenges\//, name: "HackerRank" },
+      { pattern: /^https:\/\/www\.geeksforgeeks\.org\/problems\//, name: "GeeksforGeeks" },
+      { pattern: /^https:\/\/www\.codechef\.com\/(problems\/|ide)/, name: "CodeChef" }
+    ];
+
+    return supportedPlatforms.some(platform => platform.pattern.test(url));
   }
 
   function showLoadingState() {
