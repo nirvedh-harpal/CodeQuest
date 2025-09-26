@@ -166,17 +166,37 @@
         <h3 style="font-weight: 500; margin-bottom: 15px;">Difficulty Rating Mapping</h3>
         <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">Map numeric ratings from Codeforces and CodeChef to difficulty levels:</p>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px;">
-          <div>
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Easy (≤ rating)</label>
-            <input type="number" id="easyMaxRating" value="1200" min="0" max="9999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-          </div>
-          <div>
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Medium (≤ rating)</label>
-            <input type="number" id="mediumMaxRating" value="1800" min="0" max="9999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        <!-- Codeforces Settings -->
+        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; color: #333;">Codeforces</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px;">
+            <div>
+              <label style="display: block; font-weight: bold; margin-bottom: 5px;">Easy (≤ rating)</label>
+              <input type="number" id="codeforcesEasyMax" value="1200" min="0" max="9999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+              <label style="display: block; font-weight: bold; margin-bottom: 5px;">Medium (≤ rating)</label>
+              <input type="number" id="codeforcesMediumMax" value="1800" min="0" max="9999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
           </div>
         </div>
-        <p style="margin-top: 10px; color: #666; font-size: 0.8em;">
+
+        <!-- CodeChef Settings -->
+        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; color: #333;">CodeChef</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px;">
+            <div>
+              <label style="display: block; font-weight: bold; margin-bottom: 5px;">Easy (≤ rating)</label>
+              <input type="number" id="codechefEasyMax" value="1200" min="0" max="9999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+              <label style="display: block; font-weight: bold; margin-bottom: 5px;">Medium (≤ rating)</label>
+              <input type="number" id="codechefMediumMax" value="1800" min="0" max="9999" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+          </div>
+        </div>
+        
+        <p style="margin-top: 15px; color: #666; font-size: 0.8em;">
           • Easy: 0 - Easy Max<br>
           • Medium: Easy Max + 1 - Medium Max<br>
           • Hard: Medium Max + 1 and above

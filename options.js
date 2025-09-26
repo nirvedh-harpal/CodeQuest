@@ -204,19 +204,29 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Save auto-populate settings functionality
     const saveAutoPopulateButton = document.getElementById("saveAutoPopulateSettings");
     const enableAutopopulate = document.getElementById("enableAutopopulate");
-    const easyMaxRating = document.getElementById("easyMaxRating");
-    const mediumMaxRating = document.getElementById("mediumMaxRating");
+    const codeforcesEasyMax = document.getElementById("codeforcesEasyMax");
+    const codeforcesMediumMax = document.getElementById("codeforcesMediumMax");
+    const codechefEasyMax = document.getElementById("codechefEasyMax");
+    const codechefMediumMax = document.getElementById("codechefMediumMax");
 
     saveAutoPopulateButton.addEventListener("click", async () => {
       const settings = {
         enableAutopopulate: enableAutopopulate.checked,
-        easyMaxRating: parseInt(easyMaxRating.value) || 1200,
-        mediumMaxRating: parseInt(mediumMaxRating.value) || 1800
+        codeforcesEasyMax: parseInt(codeforcesEasyMax.value) || 1200,
+        codeforcesMediumMax: parseInt(codeforcesMediumMax.value) || 1800,
+        codechefEasyMax: parseInt(codechefEasyMax.value) || 1200,
+        codechefMediumMax: parseInt(codechefMediumMax.value) || 1800
       };
 
-      // Validation
-      if (settings.easyMaxRating >= settings.mediumMaxRating) {
-        showToaster("Easy max rating must be less than Medium max rating", "error");
+      // Validation for Codeforces
+      if (settings.codeforcesEasyMax >= settings.codeforcesMediumMax) {
+        showToaster("Codeforces Easy max rating must be less than Medium max rating", "error");
+        return;
+      }
+
+      // Validation for CodeChef
+      if (settings.codechefEasyMax >= settings.codechefMediumMax) {
+        showToaster("CodeChef Easy max rating must be less than Medium max rating", "error");
         return;
       }
 
@@ -254,18 +264,24 @@ document.addEventListener("DOMContentLoaded", async function () {
         const result = await chrome.storage.sync.get(["autoPopulateSettings"]);
         const settings = result.autoPopulateSettings || {
           enableAutopopulate: false,
-          easyMaxRating: 1200,
-          mediumMaxRating: 1800
+          codeforcesEasyMax: 1200,
+          codeforcesMediumMax: 1800,
+          codechefEasyMax: 1200,
+          codechefMediumMax: 1800
         };
 
         document.getElementById("enableAutopopulate").checked = settings.enableAutopopulate;
-        document.getElementById("easyMaxRating").value = settings.easyMaxRating;
-        document.getElementById("mediumMaxRating").value = settings.mediumMaxRating;
+        document.getElementById("codeforcesEasyMax").value = settings.codeforcesEasyMax;
+        document.getElementById("codeforcesMediumMax").value = settings.codeforcesMediumMax;
+        document.getElementById("codechefEasyMax").value = settings.codechefEasyMax;
+        document.getElementById("codechefMediumMax").value = settings.codechefMediumMax;
       } catch (error) {
         // Use default values if loading fails
         document.getElementById("enableAutopopulate").checked = false;
-        document.getElementById("easyMaxRating").value = 1200;
-        document.getElementById("mediumMaxRating").value = 1800;
+        document.getElementById("codeforcesEasyMax").value = 1200;
+        document.getElementById("codeforcesMediumMax").value = 1800;
+        document.getElementById("codechefEasyMax").value = 1200;
+        document.getElementById("codechefMediumMax").value = 1800;
       }
     }
 

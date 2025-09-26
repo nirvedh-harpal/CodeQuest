@@ -77,8 +77,6 @@ async function getAutoPopulateData() {
     const url = window.location.href;
     let data = { tags: [], difficulty: "", rating: null };
 
-    console.log("CodeQuest: Attempting auto-populate for URL:", url);
-
     if (url.startsWith("https://leetcode.com")) {
       data = await getLeetCodeData();
     } else if (url.startsWith("https://codeforces.com")) {
@@ -91,7 +89,6 @@ async function getAutoPopulateData() {
       data = await getCodeChefData();
     }
 
-    console.log("CodeQuest: Auto-populate result:", data);
     return data;
   } catch (error) {
     console.error("CodeQuest: Auto-populate error:", error);
@@ -237,8 +234,6 @@ async function getGFGData() {
       ".problems_header_description__t_8PB span strong"
     )?.innerText.trim() || "";
 
-    console.log("GFG extraction - Difficulty:", difficulty, "Tags:", tags);
-
     return {
       difficulty,
       tags,
@@ -263,8 +258,6 @@ async function getInterviewBitData() {
     // Get Difficulty
     const difficultyEl = document.querySelector(".p-difficulty-level");
     const difficulty = difficultyEl ? difficultyEl.innerText.trim() : "";
-
-    console.log("InterviewBit extraction - Difficulty:", difficulty, "Tags:", tags);
 
     return {
       difficulty,
@@ -306,8 +299,6 @@ async function getCodeChefData() {
     // Extract tags using the exact selector from your script
     const tags = [...document.querySelectorAll("._tag-list-map__box_a2x1m_527 ._tagList__item_a2x1m_539")]
       .map(el => el.innerText.trim());
-
-    console.log("CodeChef extraction - Rating:", rating, "Tags:", tags);
 
     return {
       difficulty: "", // Will be mapped from rating
@@ -370,6 +361,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               data: data
             });
           } catch (error) {
+            console.error("CodeQuest Content: Error in auto-populate:", error);
             sendResponse({
               error: "Failed to extract auto-populate data from page",
               success: false,

@@ -52,8 +52,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       // Setup event listeners
       setupEventListeners(currentTab);
 
-      // Check if auto-populate should be enabled for current tab
-      await checkAndSetupAutoPopulate(currentTab);
+      // Automatically populate if enabled (no button needed)
+      await attemptAutoPopulate(currentTab);
 
       // Get current page title
       // Get current page title
@@ -120,32 +120,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  async function checkAndSetupAutoPopulate(currentTab) {
+  async function attemptAutoPopulate(currentTab) {
     try {
       // Check if auto-populate is enabled
       const result = await chrome.storage.sync.get(["autoPopulateSettings"]);
       const settings = result.autoPopulateSettings || { enableAutopopulate: false };
       
-      const autoPopulateButton = document.getElementById("autoPopulateButton");
-      
       if (settings.enableAutopopulate && isAutoPopulateSupportedSite(currentTab.url)) {
-        // Show auto-populate button
-        autoPopulateButton.style.display = "inline-flex";
-        
-        // Set up click handler
-        autoPopulateButton.addEventListener("click", async () => {
+        // Add a small delay to ensure DOM is ready
+        setTimeout(async () => {
           await handleAutoPopulate(currentTab, settings);
-        });
-      } else {
-        // Hide auto-populate button
-        autoPopulateButton.style.display = "none";
+        }, 500);
       }
     } catch (error) {
-      // Hide button on error
-      const autoPopulateButton = document.getElementById("autoPopulateButton");
-      if (autoPopulateButton) {
-        autoPopulateButton.style.display = "none";
-      }
+      console.error("CodeQuest: Error in attemptAutoPopulate:", error);
     }
   }
 
@@ -162,26 +150,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   async function handleAutoPopulate(currentTab, settings) {
-    const autoPopulateButton = document.getElementById("autoPopulateButton");
-    
     try {
-      // Show loading state
-      autoPopulateButton.disabled = true;
-      autoPopulateButton.innerHTML = '<i class="bi bi-arrow-clockwise" style="font-size: 12px; margin-right: 4px; animation: spin 1s linear infinite;"></i>Loading...';
-      
-      // Add CSS for spinner animation if not already added
-      if (!document.getElementById("spinner-style")) {
-        const style = document.createElement("style");
-        style.id = "spinner-style";
-        style.textContent = `
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `;
-        document.head.appendChild(style);
-      }
-
       // Send message to content script to extract data
       chrome.tabs.sendMessage(
         currentTab.id,
@@ -192,57 +161,97 @@ document.addEventListener("DOMContentLoaded", async function () {
         function (response) {
           try {
             if (!chrome.runtime.lastError && response?.success && response.data) {
-              const { tags, difficulty } = response.data;
+              const { tags, difficulty, rating } = response.data;
               
               // Populate tags if available
               if (tags && tags.length > 0 && window.tagsDropdown) {
-                // Clear existing tags and set new ones
-                window.tagsDropdown.clearValues();
+                window.tagsDropdown.clear();
                 window.tagsDropdown.setValues(tags);
               }
               
               // Populate difficulty if available
-              if (difficulty) {
-                const difficultySelect = document.getElementById("level");
-                if (difficultySelect) {
+              if ((difficulty || rating) && document.getElementById("level")) {
+                let finalDifficulty = difficulty;
+                
+                // If we have rating but no difficulty, map it
+                if (!difficulty && rating && settings) {
+                  finalDifficulty = mapRatingToDifficulty(rating, settings, currentTab.url);
+                }
+                
+                if (finalDifficulty) {
                   // Map difficulty to our values
                   const difficultyMapping = {
-                    "Easy": "Easy",
-                    "Medium": "Medium", 
-                    "Hard": "Hard",
-                    "easy": "Easy",
-                    "medium": "Medium",
-                    "hard": "Hard"
+                    "Easy": "Easy", "Medium": "Medium", "Hard": "Hard",
+                    "easy": "Easy", "medium": "Medium", "hard": "Hard",
+                    "EASY": "Easy", "MEDIUM": "Medium", "HARD": "Hard"
                   };
                   
-                  const mappedDifficulty = difficultyMapping[difficulty] || difficulty;
+                  const mappedDifficulty = difficultyMapping[finalDifficulty] || finalDifficulty;
+                  
                   if (["Easy", "Medium", "Hard"].includes(mappedDifficulty)) {
+                    const difficultySelect = document.getElementById("level");
                     difficultySelect.value = mappedDifficulty;
+                    
+                    // Trigger change event
+                    const changeEvent = new Event('change', { bubbles: true });
+                    difficultySelect.dispatchEvent(changeEvent);
                   }
                 }
               }
               
-              showToast(`Auto-populated ${tags.length} tags${difficulty ? ' and difficulty' : ''}!`, "success");
+              // Show success message
+              const successMessage = `Auto-populated ${tags?.length || 0} tags${(difficulty || rating) ? ' and difficulty' : ''}!`;
+              showToast(successMessage, "success");
               
-            } else {
-              showToast("Could not extract data from this page", "error");
+            } else if (chrome.runtime.lastError) {
+              console.error("CodeQuest: Content script communication error:", chrome.runtime.lastError);
             }
           } catch (error) {
-            showToast("Error processing auto-populate data", "error");
-          } finally {
-            // Reset button state
-            autoPopulateButton.disabled = false;
-            autoPopulateButton.innerHTML = '<i class="bi bi-magic" style="font-size: 12px; margin-right: 4px;"></i>Auto-Fill';
+            console.error("CodeQuest: Error processing auto-populate response:", error);
           }
         }
       );
       
     } catch (error) {
-      showToast("Auto-populate failed", "error");
-      // Reset button state
-      autoPopulateButton.disabled = false;
-      autoPopulateButton.innerHTML = '<i class="bi bi-magic" style="font-size: 12px; margin-right: 4px;"></i>Auto-Fill';
+      console.error("CodeQuest: Auto-populate setup error:", error);
     }
+  }
+
+  // Helper function to map rating to difficulty with platform-specific settings
+  function mapRatingToDifficulty(rating, settings, url) {
+    console.log("CodeQuest: Mapping rating", rating, "with settings:", settings, "for URL:", url);
+    
+    if (!rating || !settings) {
+      console.log("CodeQuest: No rating or settings for mapping");
+      return "";
+    }
+    
+    let easyMax, mediumMax;
+    
+    // Use platform-specific settings if available
+    if (url.includes("codeforces.com")) {
+      easyMax = settings.codeforcesEasyMax || settings.easyMaxRating || 1200;
+      mediumMax = settings.codeforcesMediumMax || settings.mediumMaxRating || 1800;
+    } else if (url.includes("codechef.com")) {
+      easyMax = settings.codechefEasyMax || settings.easyMaxRating || 1200;
+      mediumMax = settings.codechefMediumMax || settings.mediumMaxRating || 1800;
+    } else {
+      // Fallback to general settings
+      easyMax = settings.easyMaxRating || 1200;
+      mediumMax = settings.mediumMaxRating || 1800;
+    }
+    
+    let result;
+    if (rating <= easyMax) {
+      result = "Easy";
+    } else if (rating <= mediumMax) {
+      result = "Medium";
+    } else {
+      result = "Hard";
+    }
+    
+    console.log("CodeQuest: Rating", rating, "mapped to", result, "using ranges: Easy ≤", easyMax, "Medium ≤", mediumMax);
+    return result;
   }
 
   async function loadDropdownOptionsFromCache() {
@@ -403,11 +412,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function getFormData() {
-    // Get folder from the folder dropdown
+    // Get folder from the folder dropdown (now optional)
     const folderValues = window.folderDropdown
       ? window.folderDropdown.getValues()
       : [];
-    const folder = folderValues.length > 0 ? folderValues[0] : "";
+    const folder = folderValues.length > 0 ? folderValues[0] : "General"; // Default to "General" if no folder selected
 
     return {
       folder: folder,
@@ -424,12 +433,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function validateFormData(data) {
-    if (!data.folder) {
-      return {
-        valid: false,
-        message: "Please select an existing folder or create a new one.",
-      };
-    }
     if (!data.question) {
       return { valid: false, message: "Question title is required." };
     }
