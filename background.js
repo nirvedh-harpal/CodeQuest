@@ -188,4 +188,4 @@ async function performSync() {
 }
 
 // Initialize services when script loads
-initializeBackgroundServices().catch(console.error);
+initializeBackgroundServices();

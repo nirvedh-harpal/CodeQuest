@@ -91,7 +91,6 @@ async function getAutoPopulateData() {
 
     return data;
   } catch (error) {
-    console.error("CodeQuest: Auto-populate error:", error);
     return { tags: [], difficulty: "", rating: null };
   }
 }
@@ -126,7 +125,6 @@ async function getLeetCodeData() {
       rating: null
     };
   } catch (error) {
-    console.error("LeetCode extraction error:", error);
     return { tags: [], difficulty: "", rating: null };
   }
 }
@@ -158,19 +156,14 @@ async function getCodeforcesData() {
       p => String(p.contestId) === contestId && p.index === index
     );
 
-    if (!problem) {
-      console.log("CodeQuest: Problem not found in API (maybe gym problem or unrated)");
-      return { tags: [], difficulty: "", rating: null };
-    }
-
-    return {
+      if (!problem) {
+        return { tags: [], difficulty: "", rating: null };
+      }    return {
       difficulty: "", // Will be mapped from rating
       tags: problem.tags || [],
       rating: problem.rating || null
     };
   } catch (error) {
-    console.error("Codeforces extraction error:", error);
-    // Fallback to DOM scraping if API fails
     return await getCodeforcesDataFromDOM();
   }
 }
@@ -211,7 +204,6 @@ async function getCodeforcesDataFromDOM() {
       rating
     };
   } catch (error) {
-    console.error("Codeforces DOM extraction error:", error);
     return { tags: [], difficulty: "", rating: null };
   }
 }
@@ -240,7 +232,6 @@ async function getGFGData() {
       rating: null
     };
   } catch (error) {
-    console.error("GFG extraction error:", error);
     return { tags: [], difficulty: "", rating: null };
   }
 }
@@ -265,7 +256,6 @@ async function getInterviewBitData() {
       rating: null
     };
   } catch (error) {
-    console.error("InterviewBit extraction error:", error);
     return { tags: [], difficulty: "", rating: null };
   }
 }
@@ -306,7 +296,6 @@ async function getCodeChefData() {
       rating
     };
   } catch (error) {
-    console.error("CodeChef extraction error:", error);
     return { tags: [], difficulty: "", rating: null };
   }
 }
@@ -367,7 +356,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               data: data
             });
           } catch (error) {
-            console.error("CodeQuest Content: Error in auto-populate:", error);
             sendResponse({
               error: "Failed to extract auto-populate data from page",
               success: false,

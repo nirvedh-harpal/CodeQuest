@@ -1,8 +1,3 @@
-/**
- * Tag Mapper for CodeQuest Extension
- * Normalizes tags from different platforms to canonical forms
- */
-
 class TagMapper {
   constructor() {
     this.defaultTagMap = {
@@ -115,7 +110,6 @@ class TagMapper {
       const result = await chrome.storage.sync.get(['customTagMap']);
       this.tagMap = result.customTagMap || this.defaultTagMap;
     } catch (error) {
-      console.error('Error loading tag map:', error);
       this.tagMap = this.defaultTagMap;
     }
   }
@@ -132,52 +126,34 @@ class TagMapper {
     }
   }
 
-  /**
-   * Normalize a single tag to its canonical form
-   */
   normalizeTag(tag) {
     if (!tag || typeof tag !== 'string') return tag;
-    
     const normalized = this.reverseMap.get(tag.toLowerCase().trim());
-    return normalized || tag; // Return original if no mapping found
+    return normalized || tag;
   }
 
-  /**
-   * Normalize an array of tags
-   */
   normalizeTags(tags) {
     if (!Array.isArray(tags)) return [];
-    
-    const normalizedTags = new Set(); // Use Set to avoid duplicates
-    
+    const normalizedTags = new Set();
     tags.forEach(tag => {
       const normalized = this.normalizeTag(tag);
       if (normalized && normalized.trim()) {
         normalizedTags.add(normalized);
       }
     });
-    
     return Array.from(normalizedTags).sort();
   }
 
-  /**
-   * Get current tag map for editing
-   */
   getTagMap() {
     return { ...this.tagMap };
   }
 
-  /**
-   * Update tag map with new mappings
-   */
   async updateTagMap(newTagMap) {
     try {
-      // Validate the new tag map
       if (!newTagMap || typeof newTagMap !== 'object') {
         return { success: false, error: 'Invalid tag map provided' };
       }
       
-      // Clean up the tag map before saving
       const cleanedTagMap = {};
       for (const [canonical, variants] of Object.entries(newTagMap)) {
         const cleanKey = canonical.toLowerCase().trim();
@@ -186,7 +162,7 @@ class TagMapper {
           const processedVariants = cleanVariants
             .map(v => v.toString().trim())
             .filter(v => v.length > 0)
-            .filter((v, i, arr) => arr.indexOf(v) === i); // Remove duplicates
+            .filter((v, i, arr) => arr.indexOf(v) === i);
           
           if (processedVariants.length > 0) {
             cleanedTagMap[cleanKey] = processedVariants;
@@ -194,26 +170,15 @@ class TagMapper {
         }
       }
       
-      console.log('Saving cleaned tag map:', cleanedTagMap);
-      
-      // Save to chrome storage
       await chrome.storage.sync.set({ customTagMap: cleanedTagMap });
-      
-      // Update local copy
       this.tagMap = cleanedTagMap;
       this.buildReverseMap();
-      
-      console.log('Tag map updated successfully');
       return { success: true };
     } catch (error) {
-      console.error('Error updating tag map:', error);
       return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Reset to default tag map
-   */
   async resetToDefault() {
     try {
       await chrome.storage.sync.remove(['customTagMap']);
@@ -221,56 +186,35 @@ class TagMapper {
       this.buildReverseMap();
       return { success: true };
     } catch (error) {
-      console.error('Error resetting tag map:', error);
       return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Get canonical tags (list of all possible canonical forms)
-   */
   getCanonicalTags() {
     return Object.keys(this.tagMap).sort();
   }
 
-  /**
-   * Add a new tag mapping or update existing one
-   */
   async addTagMapping(canonical, variants) {
     try {
       const canonicalLower = canonical.toLowerCase().trim();
       const currentMap = this.getTagMap();
-      
-      // Ensure variants is an array and clean it
       const cleanVariants = Array.isArray(variants) ? variants : [variants];
       const processedVariants = cleanVariants
         .map(v => v.toString().trim())
         .filter(v => v.length > 0)
-        .filter((v, i, arr) => arr.indexOf(v) === i); // Remove duplicates
+        .filter((v, i, arr) => arr.indexOf(v) === i);
       
       if (processedVariants.length === 0) {
         return { success: false, error: 'No valid variants provided' };
       }
       
-      // Update or add the mapping
       currentMap[canonicalLower] = processedVariants;
-      
-      const result = await this.updateTagMap(currentMap);
-      
-      if (result.success) {
-        console.log(`Tag mapping updated: ${canonicalLower} -> [${processedVariants.join(', ')}]`);
-      }
-      
-      return result;
+      return await this.updateTagMap(currentMap);
     } catch (error) {
-      console.error('Error adding tag mapping:', error);
       return { success: false, error: error.message };
     }
   }
 
-  /**
-   * Remove a tag mapping
-   */
   async removeTagMapping(canonical) {
     const currentMap = this.getTagMap();
     delete currentMap[canonical.toLowerCase()];
@@ -278,10 +222,8 @@ class TagMapper {
   }
 }
 
-// Create global instance
 const tagMapper = new TagMapper();
 
-// Auto-initialize when script loads
 if (typeof chrome !== 'undefined' && chrome.storage) {
-  tagMapper.initialize().catch(console.error);
+  tagMapper.initialize();
 }

@@ -59,11 +59,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Add page unload handler to restore temporarily removed mappings
     window.addEventListener('beforeunload', async () => {
       if (temporarilyRemovedMapping) {
-        // Restore the mapping before page unload
         try {
           await tagMapper.addTagMapping(temporarilyRemovedMapping.canonical, temporarilyRemovedMapping.variants);
         } catch (error) {
-          console.error('Error restoring mapping on page unload:', error);
+          // Silent error handling
         }
       }
     });
@@ -99,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           }
         });
       })
-      .catch((err) => console.error("Failed to load GAS code file: ", err));
+      .catch((err) => {});
 
     // Example success message function
     function showSuccess(message) {
@@ -629,7 +628,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
         
       } catch (error) {
-        console.error('Error populating dropdowns:', error);
+        // Silent error handling
       }
     }
 
@@ -670,7 +669,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         
         showToaster("Temporarily removed mapping restored", "info");
       } catch (error) {
-        console.error('Error restoring temporary mapping:', error);
+        // Silent error handling
       }
     }
 
@@ -703,19 +702,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function refreshTagMappingsDisplay() {
       try {
-        // Force tagMapper to reload from storage to get fresh data
         await tagMapper.initialize();
-        
         const tagMap = tagMapper.getTagMap();
-        console.log('Current tag mappings:', tagMap); // Debug log
-        
         await displayMappings(tagMap);
-        console.log(`Displayed ${Object.keys(tagMap).length} tag mappings`); // Debug log
-        
       } catch (error) {
         const displayDiv = document.getElementById("tagMappingsDisplay");
         displayDiv.innerHTML = '<p style="color: #dc3545;">Error loading tag mappings.</p>';
-        console.error('Error refreshing tag mappings display:', error);
       }
     }
 

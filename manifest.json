@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CodeQuest - Competitive Programming Tracker",
-  "description": "Save and organize coding problems from LeetCode, CodeForces, CodeChef, and more. Track your progress with Google Sheets integration.",
-  "version": "1.03",
+  "description": "Save and organize coding problems from LeetCode, Codeforces, CodeChef, and more. Auto-populate tags with smart normalization. Track your progress with Google Sheets integration.",
+  "version": "2.0.0",
   "permissions": ["storage", "activeTab", "tabs"],
   "host_permissions": [
     "https://codeforces.com/*",

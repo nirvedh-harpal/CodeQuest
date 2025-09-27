@@ -127,13 +127,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       const settings = result.autoPopulateSettings || { enableAutopopulate: false };
       
       if (settings.enableAutopopulate && isAutoPopulateSupportedSite(currentTab.url)) {
-        // Add a small delay to ensure DOM is ready
         setTimeout(async () => {
           await handleAutoPopulate(currentTab, settings);
         }, 500);
       }
     } catch (error) {
-      console.error("CodeQuest: Error in attemptAutoPopulate:", error);
+      // Silent error handling
     }
   }
 
@@ -199,30 +198,24 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
               }
               
-              // Show success message
-              const successMessage = `Auto-populated ${tags?.length || 0} tags${(difficulty || rating) ? ' and difficulty' : ''}!`;
               showToast(successMessage, "success");
               
             } else if (chrome.runtime.lastError) {
-              console.error("CodeQuest: Content script communication error:", chrome.runtime.lastError);
+              // Silent error handling
             }
           } catch (error) {
-            console.error("CodeQuest: Error processing auto-populate response:", error);
+            // Silent error handling
           }
         }
       );
       
     } catch (error) {
-      console.error("CodeQuest: Auto-populate setup error:", error);
+      // Silent error handling
     }
   }
 
-  // Helper function to map rating to difficulty with platform-specific settings
   function mapRatingToDifficulty(rating, settings, url) {
-    console.log("CodeQuest: Mapping rating", rating, "with settings:", settings, "for URL:", url);
-    
     if (!rating || !settings) {
-      console.log("CodeQuest: No rating or settings for mapping");
       return "";
     }
     
@@ -250,7 +243,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       result = "Hard";
     }
     
-    console.log("CodeQuest: Rating", rating, "mapped to", result, "using ranges: Easy ≤", easyMax, "Medium ≤", mediumMax);
     return result;
   }
 
