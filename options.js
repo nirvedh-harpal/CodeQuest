@@ -36,12 +36,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const googleAppsScriptUrlInput = document.getElementById(
       "googleAppsScriptUrl"
     );
+    const defaultFolderNameInput = document.getElementById("defaultFolderName");
     const saveConfigButton = document.getElementById("saveConfig");
     const copyScriptButton = document.getElementById("copyScriptButton");
     const configStatus = document.getElementById("configStatus");
 
     // Check required elements exist
-    if (!googleAppsScriptUrlInput || !saveConfigButton) {
+    if (!googleAppsScriptUrlInput || !defaultFolderNameInput || !saveConfigButton) {
       showError(
         "Critical error: Configuration elements not found. Please refresh the page."
       );
@@ -108,6 +109,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Save configuration functionality
     saveConfigButton.addEventListener("click", async () => {
       const webAppUrl = googleAppsScriptUrlInput.value.trim();
+      const defaultFolder = defaultFolderNameInput.value.trim() || "root";
 
       if (!webAppUrl) {
         showConfigStatus(
@@ -115,6 +117,27 @@ document.addEventListener("DOMContentLoaded", async function () {
           "error"
         );
         showToaster("Please enter a Google Apps Script Web App URL", "error");
+        return;
+      }
+
+      // Validate default folder name
+      if (!defaultFolder || defaultFolder.length === 0) {
+        showConfigStatus(
+          "Default folder name cannot be empty",
+          "error"
+        );
+        showToaster("Default folder name cannot be empty", "error");
+        return;
+      }
+
+      // Check for invalid characters in folder name
+      const invalidChars = /[\/\\:*?"<>|]/;
+      if (invalidChars.test(defaultFolder)) {
+        showConfigStatus(
+          "Default folder name contains invalid characters. Avoid: / \\ : * ? \" < > |",
+          "error"
+        );
+        showToaster("Default folder name contains invalid characters", "error");
         return;
       }
 
@@ -140,6 +163,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           // Save configuration to chrome storage
           await chrome.storage.sync.set({
             googleAppsScriptUrl: webAppUrl,
+            defaultFolder: defaultFolder,
           });
 
           // Test the connection by setting the URL in googleSheetsAPI
@@ -172,7 +196,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               ) {
                 // Treat as success if success is true, or if no error message is present
                 showConfigStatus(
-                  "Configuration saved and sheet initialized successfully! You can now start saving questions.",
+                  `Configuration saved and sheet initialized successfully! Default folder set to '${defaultFolder}'. You can now start saving questions.`,
                   "success"
                 );
               } else {
@@ -187,7 +211,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               }
             } else {
               showConfigStatus(
-                " Configuration saved successfully! Sheet already has data.",
+                ` Configuration saved successfully! Default folder set to '${defaultFolder}'. Sheet already has data.`,
                 "success"
               );
             }
@@ -261,10 +285,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function loadConfiguration() {
       try {
-        const result = await chrome.storage.sync.get(["googleAppsScriptUrl"]);
+        const result = await chrome.storage.sync.get(["googleAppsScriptUrl", "defaultFolder"]);
         if (result.googleAppsScriptUrl) {
           googleAppsScriptUrlInput.value = result.googleAppsScriptUrl;
           await googleSheetsAPI.setWebAppUrl(result.googleAppsScriptUrl);
+        }
+        if (result.defaultFolder) {
+          defaultFolderNameInput.value = result.defaultFolder;
         }
       } catch (error) {
         showError(

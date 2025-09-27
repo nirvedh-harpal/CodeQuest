@@ -49,6 +49,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       // Initialize multi-select dropdowns immediately
       initializeDropdowns(options);
 
+      // Update default folder indicator and set default folder
+      await updateDefaultFolderIndicator();
+      await setDefaultFolderIfEmpty();
+
       // Setup event listeners
       setupEventListeners(currentTab);
 
@@ -117,6 +121,54 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Update tags dropdown
     if (window.tagsDropdown) {
       window.tagsDropdown.updateItems(options.tags || []);
+    }
+  }
+
+  async function updateDefaultFolderIndicator() {
+    try {
+      const result = await chrome.storage.sync.get(['defaultFolder']);
+      const defaultFolder = result.defaultFolder || 'root';
+      const indicator = document.getElementById('defaultFolderIndicator');
+      if (indicator) {
+        indicator.textContent = `Auto-selected: ${defaultFolder}`;
+      }
+    } catch (error) {
+      const indicator = document.getElementById('defaultFolderIndicator');
+      if (indicator) {
+        indicator.textContent = 'Auto-selected: root';
+      }
+    }
+  }
+
+  async function setDefaultFolderIfEmpty() {
+    try {
+      // Get the default folder from settings
+      const result = await chrome.storage.sync.get(['defaultFolder']);
+      const defaultFolder = result.defaultFolder || 'root';
+      
+      // Check if folder dropdown is empty and set default
+      if (window.folderDropdown) {
+        const currentValues = window.folderDropdown.getValues();
+        if (currentValues.length === 0) {
+          // Add the default folder to available items if it's not already there
+          if (!window.folderDropdown.items.includes(defaultFolder)) {
+            window.folderDropdown.addItems([defaultFolder]);
+          }
+          // Set the default folder as selected
+          window.folderDropdown.setValues([defaultFolder]);
+        }
+      }
+    } catch (error) {
+      // If there's an error, try to set 'root' as default
+      if (window.folderDropdown) {
+        const currentValues = window.folderDropdown.getValues();
+        if (currentValues.length === 0) {
+          if (!window.folderDropdown.items.includes('root')) {
+            window.folderDropdown.addItems(['root']);
+          }
+          window.folderDropdown.setValues(['root']);
+        }
+      }
     }
   }
 
@@ -370,7 +422,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       saveButton.disabled = true;
       saveButton.textContent = "Saving...";
 
-      const formData = getFormData();
+      const formData = await getFormData();
 
       const validationResult = validateFormData(formData);
 
@@ -403,12 +455,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  function getFormData() {
+  async function getFormData() {
     // Get folder from the folder dropdown (now optional)
     const folderValues = window.folderDropdown
       ? window.folderDropdown.getValues()
       : [];
-    const folder = folderValues.length > 0 ? folderValues[0] : "General"; // Default to "General" if no folder selected
+    
+    // Get default folder from settings, fallback to "root"
+    let defaultFolder = "root";
+    try {
+      const result = await chrome.storage.sync.get(['defaultFolder']);
+      if (result.defaultFolder) {
+        defaultFolder = result.defaultFolder;
+      }
+    } catch (error) {
+      console.error('Error loading default folder setting:', error);
+    }
+    
+    const folder = folderValues.length > 0 ? folderValues[0] : defaultFolder;
 
     return {
       folder: folder,
