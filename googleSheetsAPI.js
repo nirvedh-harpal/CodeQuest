@@ -150,6 +150,20 @@ class GoogleSheetsAPI {
         );
       }
 
+      // Normalize tags using tagMapper before saving
+      let normalizedTags = questionData.tags;
+      if (questionData.tags && questionData.tags.length > 0) {
+        try {
+          if (typeof tagMapper !== 'undefined' && tagMapper.normalizeTags) {
+            await tagMapper.initialize(); // Ensure tag mapper is ready
+            normalizedTags = tagMapper.normalizeTags(questionData.tags);
+          }
+        } catch (tagError) {
+          console.warn('Tag normalization failed during save, using original tags:', tagError);
+          // Continue with original tags if normalization fails
+        }
+      }
+
       // Transform data to match new structure
       const enhancedData = {
         folder: questionData.folder || "",
@@ -160,9 +174,9 @@ class GoogleSheetsAPI {
           : questionData.pattern || "",
         note: questionData.note || "",
         level: questionData.level || "Medium",
-        tags: Array.isArray(questionData.tags)
-          ? questionData.tags.join(", ")
-          : questionData.tags || "",
+        tags: Array.isArray(normalizedTags)
+          ? normalizedTags.join(", ")
+          : normalizedTags || "",
         premium: questionData.premium || "No",
         revisionNeeded: questionData.revisionNeeded || "No",
       };

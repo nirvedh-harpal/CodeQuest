@@ -2,6 +2,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   try {
     showLoadingState();
 
+    // Initialize tagMapper first
+    if (typeof tagMapper !== 'undefined') {
+      try {
+        await tagMapper.initialize();
+      } catch (error) {
+        console.warn('TagMapper initialization failed:', error);
+      }
+    }
+
     // Ensure configuration is loaded first
     await googleSheetsAPI.ensureConfigLoaded();
     const isConfigured = await googleSheetsAPI.isConfigured();
@@ -214,10 +223,20 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (!chrome.runtime.lastError && response?.success && response.data) {
               const { tags, difficulty, rating } = response.data;
               
-              // Populate tags if available
+              // Populate tags if available and normalize them
               if (tags && tags.length > 0 && window.tagsDropdown) {
+                // Normalize tags using tagMapper
+                let normalizedTags = tags;
+                try {
+                  if (typeof tagMapper !== 'undefined' && tagMapper.normalizeTags) {
+                    normalizedTags = tagMapper.normalizeTags(tags);
+                  }
+                } catch (error) {
+                  console.warn('Tag normalization failed, using original tags:', error);
+                }
+                
                 window.tagsDropdown.clear();
-                window.tagsDropdown.setValues(tags);
+                window.tagsDropdown.setValues(normalizedTags);
               }
               
               // Populate difficulty if available
@@ -340,6 +359,17 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         // Force refresh from Google Sheets directly
         const newOptions = await googleSheetsAPI.forceRefreshDropdownOptions();
+
+        // Ensure canonical tags are included
+        if (typeof tagMapper !== 'undefined' && tagMapper.getCanonicalTags) {
+          try {
+            const canonicalTags = tagMapper.getCanonicalTags();
+            const mergedTags = [...new Set([...canonicalTags, ...(newOptions.tags || [])])].sort();
+            newOptions.tags = mergedTags;
+          } catch (error) {
+            console.warn('Could not merge canonical tags:', error);
+          }
+        }
 
         // Update the dropdowns with fresh data
         await updateDropdowns(newOptions);

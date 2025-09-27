@@ -340,10 +340,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           try {
             const data = await getAutoPopulateData();
             
-            // Normalize tags using tag mapper
-            if (data.tags && data.tags.length > 0 && tagMapper) {
-              await tagMapper.initialize(); // Ensure tag mapper is ready
-              data.tags = tagMapper.normalizeTags(data.tags);
+            // Normalize tags using tag mapper if available
+            if (data.tags && data.tags.length > 0) {
+              try {
+                if (typeof tagMapper !== 'undefined' && tagMapper.normalizeTags) {
+                  await tagMapper.initialize(); // Ensure tag mapper is ready
+                  data.tags = tagMapper.normalizeTags(data.tags);
+                }
+              } catch (tagError) {
+                console.warn('Tag normalization failed, using original tags:', tagError);
+                // Continue with original tags if normalization fails
+              }
             }
             
             // If we have a rating but no difficulty, map it using settings

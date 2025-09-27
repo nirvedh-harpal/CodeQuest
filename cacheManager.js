@@ -16,10 +16,44 @@ class CacheManager {
     };
   }
 
+  async getCanonicalTags() {
+    try {
+      // Import tagMapper if not available
+      if (typeof tagMapper === 'undefined') {
+        // Try to get canonical tags from tagMapper
+        const script = document.createElement('script');
+        script.src = 'tagMapper.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+      
+      if (typeof tagMapper !== 'undefined' && tagMapper.getCanonicalTags) {
+        return tagMapper.getCanonicalTags();
+      }
+    } catch (error) {
+      console.warn('Could not load canonical tags from tagMapper:', error);
+    }
+    
+    // Fallback canonical tags if tagMapper fails
+    return [
+      "array", "string", "hash", "dynamic-programming", "math", "sorting", 
+      "greedy", "dfs", "bfs", "binary-search", "two-pointers", "graph", 
+      "tree", "stack", "queue", "heap", "linked-list", "binary-tree", 
+      "backtracking", "divide-and-conquer", "sliding-window", "prefix-sum",
+      "bit-manipulation", "recursion", "memoization", "trie", "union-find",
+      "shortest-path", "topological-sort", "game-theory", "number-theory",
+      "combinatorics", "geometry", "implementation"
+    ].sort();
+  }
+
   async initialize() {
     if (this.initialized) return;
 
     try {
+      // Get canonical tags as default tags
+      const canonicalTags = await this.getCanonicalTags();
+      this.defaultDropdownOptions.tags = canonicalTags;
+
       // Initialize dropdown options if not exist
       const { dropdownOptions } = await chrome.storage.local.get([
         "dropdownOptions",
@@ -27,6 +61,16 @@ class CacheManager {
       if (!dropdownOptions) {
         await chrome.storage.local.set({
           dropdownOptions: this.defaultDropdownOptions,
+        });
+      } else {
+        // Ensure tags always include canonical forms (merge with existing)
+        const mergedTags = [...new Set([...canonicalTags, ...(dropdownOptions.tags || [])])].sort();
+        const updatedOptions = {
+          ...dropdownOptions,
+          tags: mergedTags
+        };
+        await chrome.storage.local.set({
+          dropdownOptions: updatedOptions,
         });
       }
 
@@ -140,7 +184,18 @@ class CacheManager {
       }
       if (questionData.tags && Array.isArray(questionData.tags)) {
         for (const tag of questionData.tags) {
-          if (tag) await this.addDropdownOption("tags", tag);
+          if (tag) {
+            // Normalize tag using tagMapper before adding to cache
+            let normalizedTag = tag;
+            try {
+              if (typeof tagMapper !== 'undefined' && tagMapper.normalizeTag) {
+                normalizedTag = tagMapper.normalizeTag(tag);
+              }
+            } catch (error) {
+              // Use original tag if normalization fails
+            }
+            await this.addDropdownOption("tags", normalizedTag);
+          }
         }
       }
 
@@ -374,16 +429,18 @@ class CacheManager {
             processedOptions.patterns = Array.from(patternSet).sort();
           }
 
-          // Add default options if none exist
+          // Add default options if none exist or merge canonical tags
           if (processedOptions.patterns.length === 0) {
             processedOptions.patterns = this.defaultDropdownOptions.patterns;
           }
           if (processedOptions.folders.length === 0) {
             processedOptions.folders = this.defaultDropdownOptions.folders;
           }
-          if (processedOptions.tags.length === 0) {
-            processedOptions.tags = this.defaultDropdownOptions.tags;
-          }
+          
+          // Always ensure canonical tags are available
+          const canonicalTags = await this.getCanonicalTags();
+          const mergedTags = [...new Set([...canonicalTags, ...processedOptions.tags])].sort();
+          processedOptions.tags = mergedTags;
 
           // Save processed options to cache
           await chrome.storage.local.set({ dropdownOptions: processedOptions });
@@ -393,13 +450,19 @@ class CacheManager {
         }
       } catch (sheetsError) {}
 
-      // Fallback to default options
+      // Fallback to default options with canonical tags
+      const canonicalTags = await this.getCanonicalTags();
+      const defaultWithCanonical = {
+        ...this.defaultDropdownOptions,
+        tags: canonicalTags
+      };
+      
       await chrome.storage.local.set({
-        dropdownOptions: this.defaultDropdownOptions,
+        dropdownOptions: defaultWithCanonical,
       });
       this.initialized = true;
 
-      return this.defaultDropdownOptions;
+      return defaultWithCanonical;
     } catch (error) {
       // Return default options as fallback
       return this.defaultDropdownOptions;
