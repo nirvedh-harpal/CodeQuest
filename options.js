@@ -492,7 +492,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           await restoreTemporaryMapping();
         } finally {
           updateButton.disabled = false;
-          updateButton.textContent = "📝 Update Mapping";
+          updateButton.textContent = "Update Mapping";
         }
       });
     }
@@ -538,7 +538,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           showToaster("Error removing tag mapping", "error");
         } finally {
           removeButton.disabled = false;
-          removeButton.textContent = "🗑️ Remove";
+          removeButton.textContent = "Remove";
         }
       });
     }
@@ -595,7 +595,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           showToaster("Error resetting tag mappings", "error");
         } finally {
           resetButton.disabled = false;
-          resetButton.textContent = "↺ Reset to Defaults";
+          resetButton.textContent = "Reset to Defaults";
         }
       });
     }
