@@ -73,7 +73,9 @@ class TagMapper {
         "deque",
         "deques",
         "Deque",
-        "Deques",
+        "Deques"
+      ],
+        "double-ended queue": [
         "double-ended queue",
         "double ended queue",
         "double-ended-queue",
@@ -142,7 +144,8 @@ class TagMapper {
         "trie",
         "tries",
         "Trie",
-        "Tries",
+        "Tries"],
+        "prefix tree": [
         "prefix tree",
         "prefix trees",
         "Prefix Tree",
@@ -164,7 +167,8 @@ class TagMapper {
         "binary-indexed trees",
         "Binary Indexed Tree",
         "Binary Indexed Trees",
-        "BIT",
+        "BIT"],
+        "Fenwick Tree": [
         "Fenwick",
         "Fenwick Tree",
         "Fenwick Trees"
@@ -219,7 +223,8 @@ class TagMapper {
         "depth first search",
         "depth-first search",
         "Depth First Search",
-        "Depth-First Search"
+        "Depth-First Search",
+        "dfs and similar"
       ],
       "bfs": [
         "bfs",
@@ -227,7 +232,8 @@ class TagMapper {
         "breadth first search",
         "breadth-first search",
         "Breadth First Search",
-        "Breadth-First Search"
+        "Breadth-First Search",
+        "bfs and similar"
       ],
       "shortest-path": [
         "shortest path",
