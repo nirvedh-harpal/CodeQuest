@@ -56,6 +56,14 @@ function doPost(e) {
         refreshDropdowns();
         // Then return the updated dropdown options
         return getDropdownOptions();
+      case "updateTagDropdown":
+        return updateTagDropdown(requestData.tags);
+      case "addTagToDropdown":
+        return addTagToDropdown(requestData.tag);
+      case "removeTagFromDropdown":
+        return removeTagFromDropdown(requestData.tag);
+      case "getTagDropdown":
+        return getTagDropdown();
       default:
         return createResponse(false, "Unknown action");
     }
@@ -821,6 +829,170 @@ function getDropdownOptions() {
     };
 
     return createResponse(true, options);
+  } catch (error) {
+    return createResponse(false, error.toString());
+  }
+}
+
+/**
+ * Update tag dropdown validation with new canonical tags
+ */
+function updateTagDropdown(canonicalTags) {
+  try {
+    validateSheetId();
+    const sheet = getOrCreateSheet();
+    
+    if (!canonicalTags || !Array.isArray(canonicalTags) || canonicalTags.length === 0) {
+      throw new Error("Invalid canonical tags provided");
+    }
+
+    // Clean and sort the tags
+    const cleanTags = canonicalTags
+      .map(tag => String(tag).trim())
+      .filter(tag => tag.length > 0)
+      .sort();
+
+    // Update the dropdown validation for the tags column (column F)
+    const range = sheet.getRange("F:F");
+    const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(cleanTags)
+      .setAllowInvalid(false)
+      .setHelpText("Select from available canonical tags")
+      .build();
+    
+    range.setDataValidation(rule);
+
+    return createResponse(true, { 
+      message: "Tag dropdown updated successfully",
+      tagsCount: cleanTags.length 
+    });
+  } catch (error) {
+    return createResponse(false, error.toString());
+  }
+}
+
+/**
+ * Add a single canonical tag to dropdown validation
+ */
+function addTagToDropdown(canonicalTag) {
+  try {
+    validateSheetId();
+    const sheet = getOrCreateSheet();
+    
+    if (!canonicalTag || typeof canonicalTag !== 'string') {
+      throw new Error("Invalid canonical tag provided");
+    }
+
+    const cleanTag = canonicalTag.trim().toLowerCase();
+    if (cleanTag.length === 0) {
+      throw new Error("Empty tag provided");
+    }
+
+    // Get current validation rules
+    const range = sheet.getRange("F:F");
+    const validation = range.getDataValidation();
+    
+    let currentTags = [];
+    if (validation && validation.getCriteriaValues() && validation.getCriteriaValues()[0]) {
+      currentTags = validation.getCriteriaValues()[0];
+    }
+
+    // Add new tag if not already present
+    if (!currentTags.includes(cleanTag)) {
+      currentTags.push(cleanTag);
+      currentTags.sort();
+
+      // Update validation rule
+      const rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(currentTags)
+        .setAllowInvalid(false)
+        .setHelpText("Select from available canonical tags")
+        .build();
+      
+      range.setDataValidation(rule);
+    }
+
+    return createResponse(true, { 
+      message: "Tag added to dropdown successfully",
+      tag: cleanTag,
+      totalTags: currentTags.length
+    });
+  } catch (error) {
+    return createResponse(false, error.toString());
+  }
+}
+
+/**
+ * Remove a canonical tag from dropdown validation
+ */
+function removeTagFromDropdown(canonicalTag) {
+  try {
+    validateSheetId();
+    const sheet = getOrCreateSheet();
+    
+    if (!canonicalTag || typeof canonicalTag !== 'string') {
+      throw new Error("Invalid canonical tag provided");
+    }
+
+    const tagToRemove = canonicalTag.trim().toLowerCase();
+    if (tagToRemove.length === 0) {
+      throw new Error("Empty tag provided");
+    }
+
+    // Get current validation rules
+    const range = sheet.getRange("F:F");
+    const validation = range.getDataValidation();
+    
+    let currentTags = [];
+    if (validation && validation.getCriteriaValues() && validation.getCriteriaValues()[0]) {
+      currentTags = validation.getCriteriaValues()[0];
+    }
+
+    // Remove the tag
+    const filteredTags = currentTags.filter(tag => tag !== tagToRemove);
+    
+    if (filteredTags.length !== currentTags.length) {
+      // Tag was found and removed, update validation
+      const rule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(filteredTags)
+        .setAllowInvalid(false)
+        .setHelpText("Select from available canonical tags")
+        .build();
+      
+      range.setDataValidation(rule);
+    }
+
+    return createResponse(true, { 
+      message: "Tag removed from dropdown successfully",
+      tag: tagToRemove,
+      totalTags: filteredTags.length
+    });
+  } catch (error) {
+    return createResponse(false, error.toString());
+  }
+}
+
+/**
+ * Get current tag dropdown validation options
+ */
+function getTagDropdown() {
+  try {
+    validateSheetId();
+    const sheet = getOrCreateSheet();
+    
+    // Get current validation rules for tags column
+    const range = sheet.getRange("F:F");
+    const validation = range.getDataValidation();
+    
+    let tags = [];
+    if (validation && validation.getCriteriaValues() && validation.getCriteriaValues()[0]) {
+      tags = validation.getCriteriaValues()[0];
+    }
+
+    return createResponse(true, { 
+      tags: tags,
+      totalTags: tags.length
+    });
   } catch (error) {
     return createResponse(false, error.toString());
   }

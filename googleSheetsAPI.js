@@ -552,6 +552,115 @@ class GoogleSheetsAPI {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Sync canonical tag forms to Google Sheets dropdown validation
+   */
+  async syncCanonicalTagsToSheet() {
+    try {
+      // Get all canonical tags from tagMapper
+      if (typeof tagMapper === 'undefined') {
+        throw new Error('TagMapper not available');
+      }
+
+      await tagMapper.initialize();
+      const canonicalTags = tagMapper.getCanonicalTags();
+
+      if (!canonicalTags || canonicalTags.length === 0) {
+        throw new Error('No canonical tags available');
+      }
+
+      // Send to Google Sheets to update dropdown validation
+      const result = await this.makeRequest({
+        action: "updateTagDropdown",
+        tags: canonicalTags
+      });
+
+      return { success: true, tagsCount: canonicalTags.length };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Add a new canonical tag to Google Sheets dropdown validation
+   */
+  async addCanonicalTagToSheet(canonicalTag) {
+    try {
+      if (!canonicalTag || typeof canonicalTag !== 'string') {
+        throw new Error('Invalid canonical tag provided');
+      }
+
+      const result = await this.makeRequest({
+        action: "addTagToDropdown",
+        tag: canonicalTag.toLowerCase().trim()
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Remove a canonical tag from Google Sheets dropdown validation
+   */
+  async removeCanonicalTagFromSheet(canonicalTag) {
+    try {
+      if (!canonicalTag || typeof canonicalTag !== 'string') {
+        throw new Error('Invalid canonical tag provided');
+      }
+
+      const result = await this.makeRequest({
+        action: "removeTagFromDropdown", 
+        tag: canonicalTag.toLowerCase().trim()
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update a canonical tag in Google Sheets dropdown validation
+   * (Remove old and add new)
+   */
+  async updateCanonicalTagInSheet(oldTag, newTag) {
+    try {
+      if (!oldTag || !newTag || typeof oldTag !== 'string' || typeof newTag !== 'string') {
+        throw new Error('Invalid tag parameters provided');
+      }
+
+      const oldTagClean = oldTag.toLowerCase().trim();
+      const newTagClean = newTag.toLowerCase().trim();
+
+      // Remove old tag first
+      await this.removeCanonicalTagFromSheet(oldTagClean);
+      
+      // Add new tag
+      await this.addCanonicalTagToSheet(newTagClean);
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get current tag dropdown options from Google Sheets
+   */
+  async getSheetTagDropdownOptions() {
+    try {
+      const result = await this.makeRequest({
+        action: "getTagDropdown"
+      });
+
+      return { success: true, tags: result.tags || [] };
+    } catch (error) {
+      return { success: false, error: error.message, tags: [] };
+    }
+  }
 }
 
 // Create global instance

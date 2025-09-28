@@ -114,6 +114,103 @@ document.addEventListener("DOMContentLoaded", async function () {
       allowCustom: true,
       maxHeight: "120px",
     });
+
+    // Add tag normalization preview functionality with a delay to ensure everything is ready
+    // Use longer delay and retry mechanism to ensure tagMapper is fully initialized
+    setTimeout(() => {
+      setupTagNormalizationPreview();
+    }, 800);
+  }
+
+  function setupTagNormalizationPreview() {
+    console.log("Setting up tag normalization preview...");
+    
+    const previewDiv = document.getElementById("tagNormalizationPreview");
+    if (!previewDiv) {
+      console.log("Preview div not found, retrying...");
+      setTimeout(() => setupTagNormalizationPreview(), 100);
+      return;
+    }
+
+    if (!window.tagsDropdown) {
+      console.log("Tags dropdown not ready, retrying...");
+      setTimeout(() => setupTagNormalizationPreview(), 100);
+      return;
+    }
+
+    // Get the input element from the tags dropdown
+    const tagsContainer = document.getElementById("tagsDropdown");
+    const inputElement = tagsContainer?.querySelector("input");
+    
+    if (!inputElement) {
+      console.log("Input element not found, retrying...");
+      setTimeout(() => setupTagNormalizationPreview(), 100);
+      return;
+    }
+
+    // Check if tagMapper is properly initialized
+    if (typeof tagMapper === 'undefined' || !tagMapper.reverseMap) {
+      console.log("TagMapper not ready, retrying...");
+      setTimeout(() => setupTagNormalizationPreview(), 200);
+      return;
+    }
+
+    console.log("Found input element and tagMapper, setting up event listeners");
+
+    // Add event listener for real-time tag normalization preview
+    inputElement.addEventListener("input", () => {
+      const userInput = inputElement.value.trim();
+      console.log("User input:", userInput);
+      
+      if (!userInput) {
+        previewDiv.style.display = "none";
+        return;
+      }
+
+      // Check if tagMapper is available and get canonical form preview
+      if (typeof tagMapper !== 'undefined' && tagMapper.getCanonicalFormPreview) {
+        try {
+          const preview = tagMapper.getCanonicalFormPreview(userInput);
+          console.log("Preview result:", preview);
+          
+          if (preview && !preview.isCanonical && preview.canonical !== preview.input) {
+            // Show preview only if the input will be normalized to something different
+            previewDiv.style.display = "block";
+            previewDiv.innerHTML = `💡 "${preview.input}" will be mapped to canonical form "<strong>${preview.canonical}</strong>"`;
+            previewDiv.style.backgroundColor = "#d1ecf1";
+            previewDiv.style.borderColor = "#bee5eb";
+            previewDiv.style.color = "#0c5460";
+          } else if (preview && preview.isCanonical) {
+            // Show that it's already canonical
+            previewDiv.style.display = "block";
+            previewDiv.innerHTML = `✅ "${preview.input}" is already in canonical form`;
+            previewDiv.style.backgroundColor = "#d4edda";
+            previewDiv.style.borderColor = "#c3e6cb";
+            previewDiv.style.color = "#155724";
+          } else {
+            // No mapping found - will be used as-is
+            previewDiv.style.display = "block";
+            previewDiv.innerHTML = `ℹ️ "${preview.input}" will be used as-is (no mapping found)`;
+            previewDiv.style.backgroundColor = "#fff3cd";
+            previewDiv.style.borderColor = "#ffeeba";
+            previewDiv.style.color = "#856404";
+          }
+        } catch (error) {
+          console.error("Error getting canonical form preview:", error);
+        }
+      } else {
+        console.log("TagMapper not available or method missing");
+      }
+    });
+
+    // Hide preview when input loses focus after a short delay
+    inputElement.addEventListener("blur", () => {
+      setTimeout(() => {
+        previewDiv.style.display = "none";
+      }, 300);
+    });
+
+    console.log("Tag normalization preview setup completed successfully");
   }
 
   function updateDropdowns(options) {
@@ -504,13 +601,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     
     const folder = folderValues.length > 0 ? folderValues[0] : defaultFolder;
 
+    const rawTags = window.tagsDropdown ? window.tagsDropdown.getValues() : [];
+    
+    // Normalize tags using tagMapper before saving
+    let normalizedTags = rawTags;
+    if (typeof tagMapper !== 'undefined' && tagMapper.normalizeTags) {
+      try {
+        normalizedTags = tagMapper.normalizeTags(rawTags);
+      } catch (error) {
+        console.warn('Could not normalize tags:', error);
+        normalizedTags = rawTags; // Use original tags if normalization fails
+      }
+    }
+
     return {
       folder: folder,
       question: document.getElementById("questionTitle").value.trim(),
       pattern: window.patternDropdown ? window.patternDropdown.getValues() : [],
       note: document.getElementById("note").value.trim(),
       level: document.getElementById("level").value,
-      tags: window.tagsDropdown ? window.tagsDropdown.getValues() : [],
+      tags: normalizedTags,
       premium: document.getElementById("premium").checked ? "Yes" : "No",
       revisionNeeded: document.getElementById("revisionNeeded").checked
         ? "Yes"

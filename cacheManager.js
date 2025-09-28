@@ -359,6 +359,34 @@ class CacheManager {
   }
 
   /**
+   * Refresh canonical tags in cache when tag mappings change
+   */
+  async refreshCanonicalTags() {
+    try {
+      // Get fresh canonical tags
+      const canonicalTags = await this.getCanonicalTags();
+      
+      // Get current dropdown options
+      const currentOptions = await this.getDropdownOptions();
+      
+      // Merge canonical tags with existing tags (canonical tags take priority)
+      const mergedTags = [...new Set([...canonicalTags, ...currentOptions.tags])].sort();
+      
+      // Update dropdown options
+      const updatedOptions = {
+        ...currentOptions,
+        tags: mergedTags
+      };
+      
+      await chrome.storage.local.set({ dropdownOptions: updatedOptions });
+      
+      return { success: true, tagsCount: mergedTags.length };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Clear all cached data
    */
   async clearCache() {

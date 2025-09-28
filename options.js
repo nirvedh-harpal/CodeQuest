@@ -57,6 +57,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Load and setup tag mapping management
     await setupTagMappingManagement();
 
+    // Initialize Google Sheets with canonical tags (background sync)
+    try {
+      await googleSheetsAPI.syncCanonicalTagsToSheet();
+      console.log("Initial canonical tags sync to Google Sheets completed");
+    } catch (syncError) {
+      console.warn("Initial canonical tags sync failed:", syncError);
+      // Don't show error to user - this is background sync
+    }
+
     // Add page unload handler to restore temporarily removed mappings
     window.addEventListener('beforeunload', async () => {
       if (temporarilyRemovedMapping) {
@@ -349,6 +358,67 @@ document.addEventListener("DOMContentLoaded", async function () {
       const canonicalInput = document.getElementById("newCanonicalTagInput");
       const variantsInput = document.getElementById("newTagVariantsInput");
 
+      // Create canonical form preview elements
+      const canonicalPreviewDiv = document.createElement("div");
+      canonicalPreviewDiv.id = "canonicalPreview";
+      canonicalPreviewDiv.style = "margin-top: 8px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f9f9f9; font-size: 13px; display: none;";
+      canonicalInput.parentNode.insertBefore(canonicalPreviewDiv, canonicalInput.nextSibling);
+
+      const variantsPreviewDiv = document.createElement("div");
+      variantsPreviewDiv.id = "variantsPreview";
+      variantsPreviewDiv.style = "margin-top: 8px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f8f8f8; font-size: 13px; display: none;";
+      variantsInput.parentNode.insertBefore(variantsPreviewDiv, variantsInput.nextSibling);
+
+      // Add real-time canonical form preview for canonical input
+      canonicalInput.addEventListener("input", () => {
+        const userInput = canonicalInput.value.trim();
+        if (!userInput) {
+          canonicalPreviewDiv.style.display = "none";
+          return;
+        }
+
+        const preview = tagMapper.getCanonicalFormPreview(userInput);
+        if (preview) {
+          canonicalPreviewDiv.style.display = "block";
+          canonicalPreviewDiv.innerHTML = `
+            <strong>Preview:</strong> ${preview.message}
+            ${!preview.isCanonical ? '<br><small style="color: #666;">💡 Consider using the existing canonical form instead</small>' : ''}
+          `;
+          canonicalPreviewDiv.style.borderColor = preview.isCanonical ? "#28a745" : "#ffc107";
+          canonicalPreviewDiv.style.backgroundColor = preview.isCanonical ? "#d4edda" : "#fff3cd";
+        }
+      });
+
+      // Add real-time canonical form preview for variants input
+      variantsInput.addEventListener("input", () => {
+        const variantsText = variantsInput.value.trim();
+        if (!variantsText) {
+          variantsPreviewDiv.style.display = "none";
+          return;
+        }
+
+        const variants = variantsText.split(',').map(v => v.trim()).filter(v => v);
+        if (variants.length === 0) {
+          variantsPreviewDiv.style.display = "none";
+          return;
+        }
+
+        let previewHtml = "<strong>Variants Preview:</strong><br>";
+        variants.forEach(variant => {
+          const preview = tagMapper.getCanonicalFormPreview(variant);
+          if (preview) {
+            previewHtml += `* "${preview.input}" -> "${preview.canonical}"`;
+            if (!preview.isCanonical && preview.canonical !== preview.input) {
+              previewHtml += ` <small style="color: #dc3545;">(already mapped)</small>`;
+            }
+            previewHtml += "<br>";
+          }
+        });
+
+        variantsPreviewDiv.style.display = "block";
+        variantsPreviewDiv.innerHTML = previewHtml;
+      });
+
       addButton.addEventListener("click", async () => {
         const canonical = canonicalInput.value.trim().toLowerCase();
         const variantsText = variantsInput.value.trim();
@@ -383,6 +453,22 @@ document.addEventListener("DOMContentLoaded", async function () {
             canonicalInput.value = "";
             variantsInput.value = "";
             
+            // Trigger background sync to add canonical form to Google Sheets
+            try {
+              await googleSheetsAPI.addCanonicalTagToSheet(canonical);
+              console.log("Canonical tag synced to Google Sheets:", canonical);
+            } catch (syncError) {
+              console.warn("Failed to sync new tag to Google Sheets:", syncError);
+              // Don't show error to user - this is background sync
+            }
+
+            // Refresh cache with updated canonical tags
+            try {
+              await cacheManager.refreshCanonicalTags();
+            } catch (cacheError) {
+              console.warn("Failed to refresh cache after tag addition:", cacheError);
+            }
+            
             setTimeout(async () => {
               await refreshTagMappingsDisplay();
               await populateDropdowns();
@@ -405,6 +491,67 @@ document.addEventListener("DOMContentLoaded", async function () {
       const variantsInput = document.getElementById("updateTagVariantsInput");
       const updateButton = document.getElementById("updateMappingButton");
 
+      // Create canonical form preview elements for update section
+      const updateCanonicalPreviewDiv = document.createElement("div");
+      updateCanonicalPreviewDiv.id = "updateCanonicalPreview";
+      updateCanonicalPreviewDiv.style = "margin-top: 8px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f9f9f9; font-size: 13px; display: none;";
+      canonicalInput.parentNode.insertBefore(updateCanonicalPreviewDiv, canonicalInput.nextSibling);
+
+      const updateVariantsPreviewDiv = document.createElement("div");
+      updateVariantsPreviewDiv.id = "updateVariantsPreview";
+      updateVariantsPreviewDiv.style = "margin-top: 8px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background-color: #f8f8f8; font-size: 13px; display: none;";
+      variantsInput.parentNode.insertBefore(updateVariantsPreviewDiv, variantsInput.nextSibling);
+
+      // Add real-time canonical form preview for update canonical input
+      canonicalInput.addEventListener("input", () => {
+        const userInput = canonicalInput.value.trim();
+        if (!userInput || canonicalInput.disabled) {
+          updateCanonicalPreviewDiv.style.display = "none";
+          return;
+        }
+
+        const preview = tagMapper.getCanonicalFormPreview(userInput);
+        if (preview) {
+          updateCanonicalPreviewDiv.style.display = "block";
+          updateCanonicalPreviewDiv.innerHTML = `
+            <strong>Preview:</strong> ${preview.message}
+            ${!preview.isCanonical ? '<br><small style="color: #666;">💡 Consider using the existing canonical form instead</small>' : ''}
+          `;
+          updateCanonicalPreviewDiv.style.borderColor = preview.isCanonical ? "#28a745" : "#ffc107";
+          updateCanonicalPreviewDiv.style.backgroundColor = preview.isCanonical ? "#d4edda" : "#fff3cd";
+        }
+      });
+
+      // Add real-time canonical form preview for update variants input
+      variantsInput.addEventListener("input", () => {
+        const variantsText = variantsInput.value.trim();
+        if (!variantsText || variantsInput.disabled) {
+          updateVariantsPreviewDiv.style.display = "none";
+          return;
+        }
+
+        const variants = variantsText.split(',').map(v => v.trim()).filter(v => v);
+        if (variants.length === 0) {
+          updateVariantsPreviewDiv.style.display = "none";
+          return;
+        }
+
+        let previewHtml = "<strong>Variants Preview:</strong><br>";
+        variants.forEach(variant => {
+          const preview = tagMapper.getCanonicalFormPreview(variant);
+          if (preview) {
+            previewHtml += `* "${preview.input}" -> "${preview.canonical}"`;
+            if (!preview.isCanonical && preview.canonical !== preview.input) {
+              previewHtml += ` <small style="color: #dc3545;">(already mapped)</small>`;
+            }
+            previewHtml += "<br>";
+          }
+        });
+
+        updateVariantsPreviewDiv.style.display = "block";
+        updateVariantsPreviewDiv.innerHTML = previewHtml;
+      });
+
       // Handle dropdown selection
       selectDropdown.addEventListener("change", async () => {
         const selectedCanonical = selectDropdown.value;
@@ -415,6 +562,12 @@ document.addEventListener("DOMContentLoaded", async function () {
           variantsInput.disabled = true;
           variantsInput.value = "";
           updateButton.disabled = true;
+          
+          // Hide preview elements
+          const updateCanonicalPreviewDiv = document.getElementById("updateCanonicalPreview");
+          const updateVariantsPreviewDiv = document.getElementById("updateVariantsPreview");
+          if (updateCanonicalPreviewDiv) updateCanonicalPreviewDiv.style.display = "none";
+          if (updateVariantsPreviewDiv) updateVariantsPreviewDiv.style.display = "none";
           
           // Restore temporarily removed mapping if user deselects
           if (temporarilyRemovedMapping) {
@@ -496,6 +649,25 @@ document.addEventListener("DOMContentLoaded", async function () {
           if (result.success) {
             showToaster("Tag mapping updated successfully!", "success");
             
+            // Trigger background sync to update canonical form in Google Sheets
+            try {
+              if (newCanonical !== selectedOriginalCanonical) {
+                // If canonical form changed, update in sheets (remove old, add new)
+                await googleSheetsAPI.updateCanonicalTagInSheet(selectedOriginalCanonical, newCanonical);
+              }
+              console.log("Canonical tag mapping updated in Google Sheets");
+            } catch (syncError) {
+              console.warn("Failed to sync tag update to Google Sheets:", syncError);
+              // Don't show error to user - this is background sync
+            }
+
+            // Refresh cache with updated canonical tags
+            try {
+              await cacheManager.refreshCanonicalTags();
+            } catch (cacheError) {
+              console.warn("Failed to refresh cache after tag update:", cacheError);
+            }
+            
             // Clear temporary state
             temporarilyRemovedMapping = null;
             selectDropdown.value = "";
@@ -554,6 +726,22 @@ document.addEventListener("DOMContentLoaded", async function () {
             selectDropdown.value = "";
             removeButton.disabled = true;
             
+            // Trigger background sync to remove canonical form from Google Sheets
+            try {
+              await googleSheetsAPI.removeCanonicalTagFromSheet(selectedCanonical);
+              console.log("Canonical tag removed from Google Sheets:", selectedCanonical);
+            } catch (syncError) {
+              console.warn("Failed to sync tag removal to Google Sheets:", syncError);
+              // Don't show error to user - this is background sync
+            }
+
+            // Refresh cache with updated canonical tags
+            try {
+              await cacheManager.refreshCanonicalTags();
+            } catch (cacheError) {
+              console.warn("Failed to refresh cache after tag removal:", cacheError);
+            }
+            
             setTimeout(async () => {
               await refreshTagMappingsDisplay();
               await populateDropdowns();
@@ -598,6 +786,22 @@ document.addEventListener("DOMContentLoaded", async function () {
           if (result.success) {
             showToaster("Tag mappings reset to defaults successfully!", "success");
             temporarilyRemovedMapping = null;
+            
+            // Trigger background sync to update all canonical forms in Google Sheets
+            try {
+              await googleSheetsAPI.syncCanonicalTagsToSheet();
+              console.log("All canonical tags synced to Google Sheets after reset");
+            } catch (syncError) {
+              console.warn("Failed to sync reset tags to Google Sheets:", syncError);
+              // Don't show error to user - this is background sync
+            }
+
+            // Refresh cache with reset canonical tags
+            try {
+              await cacheManager.refreshCanonicalTags();
+            } catch (cacheError) {
+              console.warn("Failed to refresh cache after tag reset:", cacheError);
+            }
             
             // Clear all inputs
             document.getElementById("newCanonicalTagInput").value = "";
@@ -645,12 +849,12 @@ document.addEventListener("DOMContentLoaded", async function () {
           
           const updateOption = document.createElement('option');
           updateOption.value = canonical;
-          updateOption.textContent = `${canonical} → ${variantsPreview}`;
+          updateOption.textContent = `${canonical} -> ${variantsPreview}`;
           updateSelect.appendChild(updateOption);
           
           const removeOption = document.createElement('option');
           removeOption.value = canonical;
-          removeOption.textContent = `${canonical} → ${variantsPreview}`;
+          removeOption.textContent = `${canonical} -> ${variantsPreview}`;
           removeSelect.appendChild(removeOption);
         });
         
@@ -717,7 +921,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                data-canonical="${canonical}" 
                data-variants="${variantsText}"
                style="margin-bottom: 8px; padding: 8px; border: 1px solid #eee; border-radius: 4px; background: white;">
-            <strong style="color: #0056b3;">${canonical}</strong> → 
+            <strong style="color: #0056b3;">${canonical}</strong> -> 
             <span style="color: #666;">${variantsText}</span>
           </div>
         `;

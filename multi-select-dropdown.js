@@ -152,6 +152,10 @@ class MultiSelectDropdown {
         cursor: pointer;
         font-weight: bold;
         opacity: 0.7;
+        padding: 2px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       
       .msd-tag-remove:hover {
@@ -341,8 +345,54 @@ class MultiSelectDropdown {
       this.dropdown.appendChild(option);
     });
 
-    // Show "Add new" option if custom entries allowed and query is not empty
+    // Handle canonical form suggestions for tags dropdown
+    const isTagsDropdown = this.container && this.container.id === 'tagsDropdown';
+    let canonicalSuggestionAdded = false;
+    let hasMappingForQuery = false;
+    
+    if (isTagsDropdown && typeof tagMapper !== 'undefined' && tagMapper.normalizeTag && query) {
+      try {
+        const normalizedTag = tagMapper.normalizeTag(query);
+        
+        // Check if query has a mapping (even if canonical form is same as input)
+        hasMappingForQuery = (normalizedTag !== query);
+        
+        // If the query maps to a canonical form and the canonical form isn't already selected
+        if (normalizedTag !== query && !this.selectedValues.has(normalizedTag)) {
+          // Check if the canonical form is NOT already shown in the regular filtered items
+          const canonicalAlreadyShown = filteredItems.some(item => 
+            item.toLowerCase() === normalizedTag.toLowerCase()
+          );
+          
+          // Only add canonical suggestion if it's not already displayed
+          if (!canonicalAlreadyShown) {
+            const canonicalOption = document.createElement("div");
+            canonicalOption.className = "msd-option";
+            canonicalOption.textContent = normalizedTag;
+            canonicalOption.style.color = "#0c5460";
+            canonicalOption.style.fontWeight = "500";
+            canonicalOption.style.backgroundColor = "#e8f4fd";
+            canonicalOption.addEventListener("click", () => {
+              this.selectItem(normalizedTag);
+            });
+            this.dropdown.appendChild(canonicalOption);
+            canonicalSuggestionAdded = true;
+          } else {
+            // Even if we didn't add a suggestion, we still have a mapping
+            canonicalSuggestionAdded = true;
+          }
+        }
+      } catch (error) {
+        // Continue with normal flow if normalization fails
+      }
+    }
+
+    // Show "Add new" option only if:
+    // 1. No mapping exists for the query (hasMappingForQuery = false)
+    // 2. Custom entries are allowed
+    // 3. Query is not empty and not already in items/selected
     if (
+      !hasMappingForQuery &&
       this.options.allowCustom &&
       query &&
       !this.items.includes(query) &&
@@ -401,18 +451,34 @@ class MultiSelectDropdown {
         }
       });
     } else {
-      // Handle single item (original logic)
-      // Check if there's an exact match in the filtered list
+      // Handle single item
+      // For tags dropdown, check if query can be normalized to canonical form first
+      const isTagsDropdown = this.container && this.container.id === 'tagsDropdown';
+      let itemToAdd = query;
+      
+      if (isTagsDropdown && typeof tagMapper !== 'undefined' && tagMapper.normalizeTag) {
+        try {
+          const normalizedTag = tagMapper.normalizeTag(query);
+          if (normalizedTag !== query && !this.selectedValues.has(normalizedTag)) {
+            // Use the canonical form instead of the original query
+            itemToAdd = normalizedTag;
+          }
+        } catch (error) {
+          // Use original query if normalization fails
+        }
+      }
+      
+      // Check if there's an exact match in the existing items
       const exactMatch = this.items.find(
         (item) =>
-          item.toLowerCase() === query.toLowerCase() &&
+          item.toLowerCase() === itemToAdd.toLowerCase() &&
           !this.selectedValues.has(item)
       );
 
       if (exactMatch) {
         this.selectItem(exactMatch);
-      } else if (this.options.allowCustom && !this.selectedValues.has(query)) {
-        this.addNewItem(query);
+      } else if (this.options.allowCustom && !this.selectedValues.has(itemToAdd)) {
+        this.addNewItem(itemToAdd);
       }
     }
   }
@@ -437,10 +503,41 @@ class MultiSelectDropdown {
   }
 
   addNewItem(item) {
-    if (!this.items.includes(item)) {
-      this.items.push(item);
+    // Normalize the tag if tagMapper is available (specifically for tags dropdown)
+    let normalizedItem = item;
+    
+    // Check if this dropdown is for tags and tagMapper is available
+    const isTagsDropdown = this.container && this.container.id === 'tagsDropdown';
+    if (isTagsDropdown && typeof tagMapper !== 'undefined' && tagMapper.normalizeTag) {
+      try {
+        normalizedItem = tagMapper.normalizeTag(item);
+        
+        // If the item was normalized to a different canonical form, show a brief indication
+        if (normalizedItem !== item && this.container) {
+          const previewDiv = document.getElementById("tagNormalizationPreview");
+          if (previewDiv) {
+            previewDiv.style.display = "block";
+            previewDiv.innerHTML = `✅ "${item}" was mapped to canonical form "<strong>${normalizedItem}</strong>"`;
+            previewDiv.style.backgroundColor = "#d4edda";
+            previewDiv.style.borderColor = "#c3e6cb";
+            previewDiv.style.color = "#155724";
+            
+            // Hide the preview after 3 seconds
+            setTimeout(() => {
+              previewDiv.style.display = "none";
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        // Use original item if normalization fails
+        normalizedItem = item;
+      }
     }
-    this.selectItem(item);
+
+    if (!this.items.includes(normalizedItem)) {
+      this.items.push(normalizedItem);
+    }
+    this.selectItem(normalizedItem);
   }
 
   removeItem(item) {
@@ -469,7 +566,15 @@ class MultiSelectDropdown {
 
       const remove = document.createElement("span");
       remove.className = "msd-tag-remove";
-      remove.textContent = "\u00D7"; // Multiplication sign
+      
+      // Use PNG image instead of text
+      const removeImg = document.createElement("img");
+      removeImg.src = "img/remove.png";
+      removeImg.style.width = "12px";
+      removeImg.style.height = "12px";
+      removeImg.style.cursor = "pointer";
+      remove.appendChild(removeImg);
+      
       remove.addEventListener("click", (e) => {
         e.stopPropagation();
         this.removeItem(value);
