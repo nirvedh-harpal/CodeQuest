@@ -149,55 +149,79 @@ document.addEventListener("DOMContentLoaded", async function () {
       return;
     }
 
-    // Add event listener for real-time tag normalization preview
-    inputElement.addEventListener("input", () => {
-      const userInput = inputElement.value.trim();
+    // Function to show/hide preview based on dropdown state
+    const updatePreviewVisibility = () => {
+      const dropdown = tagsContainer?.querySelector('.msd-dropdown');
+      const isDropdownOpen = dropdown && dropdown.classList.contains('open');
       
-      if (!userInput) {
+      if (isDropdownOpen) {
         previewDiv.style.display = "none";
-        return;
-      }
-
-      // Check if tagMapper is available and get canonical form preview
-      if (typeof tagMapper !== 'undefined' && tagMapper.getCanonicalFormPreview) {
-        try {
-          const preview = tagMapper.getCanonicalFormPreview(userInput);
-          console.log("Preview result:", preview);
-          
-          if (preview && !preview.isCanonical && preview.canonical !== preview.input) {
-            // Show preview only if the input will be normalized to something different
-            previewDiv.style.display = "block";
-            previewDiv.innerHTML = `💡 "${preview.input}" will be mapped to canonical form "<strong>${preview.canonical}</strong>"`;
-            previewDiv.style.backgroundColor = "#d1ecf1";
-            previewDiv.style.borderColor = "#bee5eb";
-            previewDiv.style.color = "#0c5460";
-          } else if (preview && preview.isCanonical) {
-            // Show that it's already canonical
-            previewDiv.style.display = "block";
-            previewDiv.innerHTML = `✅ "${preview.input}" is already in canonical form`;
-            previewDiv.style.backgroundColor = "#d4edda";
-            previewDiv.style.borderColor = "#c3e6cb";
-            previewDiv.style.color = "#155724";
-          } else {
-            // No mapping found - will be used as-is
-            previewDiv.style.display = "block";
-            previewDiv.innerHTML = `ℹ️ "${preview.input}" will be used as-is (no mapping found)`;
-            previewDiv.style.backgroundColor = "#fff3cd";
-            previewDiv.style.borderColor = "#ffeeba";
-            previewDiv.style.color = "#856404";
-          }
-        } catch (error) {
-          // Silent error handling for tag preview
-        }
       } else {
-        // TagMapper not available - continue without preview
+        // Only show preview if there's text input and a mapping change
+        const userInput = inputElement.value.trim();
+        if (userInput && typeof tagMapper !== 'undefined' && tagMapper.getCanonicalFormPreview) {
+          try {
+            const preview = tagMapper.getCanonicalFormPreview(userInput);
+            
+            if (preview && !preview.isCanonical && preview.canonical !== preview.input) {
+              // Show preview only if the input will be normalized to something different
+              previewDiv.style.display = "block";
+              previewDiv.innerHTML = `💡 "${preview.input}" will be mapped to canonical form "<strong>${preview.canonical}</strong>"`;
+              previewDiv.style.backgroundColor = "#d1ecf1";
+              previewDiv.style.borderColor = "#bee5eb";
+              previewDiv.style.color = "#0c5460";
+            } else if (preview && preview.isCanonical) {
+              // Show that it's already canonical
+              previewDiv.style.display = "block";
+              previewDiv.innerHTML = `✅ "${preview.input}" is already in canonical form`;
+              previewDiv.style.backgroundColor = "#d4edda";
+              previewDiv.style.borderColor = "#c3e6cb";
+              previewDiv.style.color = "#155724";
+            } else {
+              // No mapping found - will be used as-is
+              previewDiv.style.display = "block";
+              previewDiv.innerHTML = `ℹ️ "${preview.input}" will be used as-is (no mapping found)`;
+              previewDiv.style.backgroundColor = "#fff3cd";
+              previewDiv.style.borderColor = "#ffeeba";
+              previewDiv.style.color = "#856404";
+            }
+          } catch (error) {
+            // Silent error handling for tag preview
+            previewDiv.style.display = "none";
+          }
+        } else {
+          previewDiv.style.display = "none";
+        }
       }
+    };
+
+    // Add event listener for real-time tag normalization preview
+    inputElement.addEventListener("input", updatePreviewVisibility);
+    
+    // Listen for dropdown open/close events
+    const dropdownObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          updatePreviewVisibility();
+        }
+      });
     });
+    
+    // Start observing dropdown class changes
+    const dropdown = tagsContainer?.querySelector('.msd-dropdown');
+    if (dropdown) {
+      dropdownObserver.observe(dropdown, { attributes: true });
+    }
 
     // Hide preview when input loses focus after a short delay
     inputElement.addEventListener("blur", () => {
       setTimeout(() => {
-        previewDiv.style.display = "none";
+        // Only hide if dropdown is not open
+        const dropdown = tagsContainer?.querySelector('.msd-dropdown');
+        const isDropdownOpen = dropdown && dropdown.classList.contains('open');
+        if (!isDropdownOpen) {
+          previewDiv.style.display = "none";
+        }
       }, 300);
     });
   }
@@ -709,7 +733,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 1);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -717,13 +741,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     `;
     configOverlay.innerHTML = `
       <div style="padding: 20px; text-align: center; max-width: 350px;">
-        <h3 style="color: #ffc107; margin-bottom: 10px;">Configuration Required</h3>
-        <p style="margin-bottom: 15px; color: #333;">Google Apps Script URL not configured. Please set it in the options page.</p>
-        <div>
-          <button id="configureBtn" style="margin: 5px; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-            Configure
+        <h3 style="color: #2563eb; margin-bottom: 10px; font-weight: 600;">Configuration Required</h3>
+        <p style="margin-bottom: 15px; color: #1f2937; font-weight: 500;">Google Apps Script URL not configured. Please set it up in the options page to start saving questions.</p>
+        <div style="margin-top: 15px;">
+          <button id="configureBtn" style="margin: 5px; padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+            Go to Settings
           </button>
-          <button onclick="window.close()" style="margin: 5px; padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          <button id="closeConfigBtn" style="margin: 5px; padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
             Close
           </button>
         </div>
@@ -737,6 +761,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         chrome.runtime.openOptionsPage();
         window.close();
       });
+
+    document.getElementById("closeConfigBtn").addEventListener("click", function () {
+      window.close();
+    });
   }
 
   function showUnsupportedPage() {

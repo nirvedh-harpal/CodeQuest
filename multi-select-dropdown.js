@@ -221,7 +221,7 @@ class MultiSelectDropdown {
         border-radius: 0 0 4px 4px;
         max-height: 150px;
         overflow-y: auto;
-        z-index: 1000;
+        z-index: 1001;
         display: none;
       }
       

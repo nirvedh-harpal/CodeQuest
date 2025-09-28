@@ -294,8 +294,10 @@
           <!-- Tags -->
           <div class="my-2">
             <label for="tagsDropdown" style="color: #666; margin-bottom: 4px; display: block;">Tags</label>
-            <div id="tagsDropdown"></div>
-            <div id="tagNormalizationPreview" style="margin-top: 6px; padding: 6px 8px; border-radius: 4px; font-size: 12px; display: none; background-color: #e8f4fd; border: 1px solid #b8daff; color: #004085;"></div>
+            <div style="position: relative;">
+              <div id="tagsDropdown"></div>
+              <div id="tagNormalizationPreview" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 2px; padding: 6px 8px; border-radius: 4px; font-size: 12px; display: none; background-color: #e8f4fd; border: 1px solid #b8daff; color: #004085; z-index: 999;"></div>
+            </div>
           </div>
           <!-- Note -->
           <div class="my-2">
