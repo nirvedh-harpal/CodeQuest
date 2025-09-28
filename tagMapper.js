@@ -323,7 +323,7 @@ class TagMapper {
         "Max Flow",
         "Maximum Flow"
       ],
-      "dynamic-programming": [
+      "dp": [
         "dynamic programming",
         "dynamic-programming",
         "dynamic-program",

@@ -304,9 +304,25 @@ async function getCodeChefData() {
 function mapRatingToDifficulty(rating, settings) {
   if (!rating || !settings) return "";
   
-  if (rating <= settings.easyMaxRating) {
+  // Determine platform from URL
+  const url = window.location.href;
+  let easyMax, mediumMax;
+  
+  if (url.includes("codeforces.com")) {
+    easyMax = settings.codeforcesEasyMax || 1200;
+    mediumMax = settings.codeforcesMediumMax || 1800;
+  } else if (url.includes("codechef.com")) {
+    easyMax = settings.codechefEasyMax || 1200;
+    mediumMax = settings.codechefMediumMax || 1800;
+  } else {
+    // Fallback to general settings or defaults
+    easyMax = settings.easyMaxRating || 1200;
+    mediumMax = settings.mediumMaxRating || 1800;
+  }
+  
+  if (rating <= easyMax) {
     return "Easy";
-  } else if (rating <= settings.mediumMaxRating) {
+  } else if (rating <= mediumMax) {
     return "Medium";
   } else {
     return "Hard";

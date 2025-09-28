@@ -633,7 +633,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       { pattern: /^https:\/\/www\.interviewbit\.com\/problems\//, name: "InterviewBit" },
       { pattern: /^https:\/\/www\.hackerrank\.com\/challenges\//, name: "HackerRank" },
       { pattern: /^https:\/\/www\.geeksforgeeks\.org\/problems\//, name: "GeeksforGeeks" },
-      { pattern: /^https:\/\/www\.codechef\.com\/(problems\/|ide)/, name: "CodeChef" }
+      { pattern: /^https:\/\/www\.codechef\.com\/(problems\/|ide|practice\/course\/.+\/problems\/|contests\/.+\/problems\/)/, name: "CodeChef" }
     ];
 
     return supportedPlatforms.some(platform => platform.pattern.test(url));
