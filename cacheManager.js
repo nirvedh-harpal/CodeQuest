@@ -31,7 +31,7 @@ class CacheManager {
         return tagMapper.getCanonicalTags();
       }
     } catch (error) {
-      console.warn('Could not load canonical tags from tagMapper:', error);
+      // Could not load canonical tags from tagMapper
     }
     
     // Fallback canonical tags if tagMapper fails
@@ -502,4 +502,6 @@ class CacheManager {
 const cacheManager = new CacheManager();
 
 // Auto-initialize when script loads
-cacheManager.initialize().catch(console.error);
+cacheManager.initialize().catch(() => {
+  // Silent initialization failure
+});

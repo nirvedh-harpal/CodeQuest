@@ -159,8 +159,7 @@ class GoogleSheetsAPI {
             normalizedTags = tagMapper.normalizeTags(questionData.tags);
           }
         } catch (tagError) {
-          console.warn('Tag normalization failed during save, using original tags:', tagError);
-          // Continue with original tags if normalization fails
+          // Tag normalization failed - use original tags
         }
       }
 

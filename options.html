@@ -190,12 +190,12 @@
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
               <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Easy (<img src="/img/lessequal.png" style="width:12px; vertical-align: middle;"> rating)</label>
+                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Easy (<img src="/img/lessequal.png" style="width:24px; vertical-align: middle;"> rating )</label>
                 <input type="number" id="codeforcesEasyMax" value="1200" min="0" max="9999" 
                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
               </div>
               <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Medium (<img src="/img/lessequal.png" style="width:12px; vertical-align: middle;"> rating)</label>
+                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Medium (<img src="/img/lessequal.png" style="width:24px; vertical-align: middle;"> rating )</label>
                 <input type="number" id="codeforcesMediumMax" value="1800" min="0" max="9999" 
                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
               </div>
@@ -208,12 +208,12 @@
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
               <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Easy (<img src="/img/lessequal.png" style="width:12px; vertical-align: middle;"> rating)</label>
+                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Easy (<img src="/img/lessequal.png" style="width:24px; vertical-align: middle;"> rating )</label>
                 <input type="number" id="codechefEasyMax" value="1200" min="0" max="9999" 
                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
               </div>
               <div>
-                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Medium (<img src="/img/lessequal.png" style="width:12px; vertical-align: middle;"> rating)</label>
+                <label style="display: block; font-weight: 600; margin-bottom: 6px;">Medium (<img src="/img/lessequal.png" style="width:24px; vertical-align: middle;"> rating )</label>
                 <input type="number" id="codechefMediumMax" value="1800" min="0" max="9999" 
                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
               </div>
@@ -238,103 +238,6 @@
                 style="padding: 12px 30px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 16px;">
           Save Auto-Populate Settings
         </button>
-      </div>
-    </div>
-
-    <!-- Tag Mapping Settings Section -->
-    <div id="tagMappingSection" style="margin-bottom: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
-      <h2 style="font-weight: 500; margin-top: 0;">Tag Mapping Settings</h2>
-      <p style="margin-bottom: 25px;">Normalize tags from different platforms to canonical forms for consistency.</p>
-      
-      <!-- 1. Add New Mapping Section -->
-      <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
-        <h3 style="margin-top: 0; margin-bottom: 15px;">1. Add New Mapping</h3>
-        
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 15px;">
-          <div>
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Canonical Form</label>
-            <input type="text" id="newCanonicalTagInput" placeholder="e.g., bfs" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <small style="color: #666;">The normalized form you want to use</small>
-          </div>
-          <div>
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Variants (comma-separated)</label>
-            <input type="text" id="newTagVariantsInput" placeholder="e.g., BFS, Breadth-First Search, breadth first search" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-            <small style="color: #666;">All possible variations from different platforms</small>
-          </div>
-        </div>
-        
-        <button id="addNewMappingButton" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-          Add New Mapping
-        </button>
-      </div>
-
-          <!-- 2. Update Existing Mapping Section -->
-          <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
-            <h3 style="margin-top: 0; margin-bottom: 15px;">2. Update Existing Mapping</h3>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-bottom: 15px;">
-              <div>
-                <label style="display: block; font-weight: bold; margin-bottom: 5px;">Select Mapping to Update</label>
-                <select id="updateMappingSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                  <option value="">-- Select a mapping --</option>
-                </select>
-                <small style="color: #666;">Choose existing mapping to modify</small>
-              </div>
-              <div>
-                <label style="display: block; font-weight: bold; margin-bottom: 5px;">New Canonical Form</label>
-                <input type="text" id="updateCanonicalInput" placeholder="Update canonical form" disabled style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <small style="color: #666;">Change the canonical form if needed</small>
-              </div>
-              <div>
-                <label style="display: block; font-weight: bold; margin-bottom: 5px;">New Variants (comma-separated)</label>
-                <input type="text" id="updateTagVariantsInput" placeholder="Enter new variants for selected mapping" disabled style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <small style="color: #666;">New variants will replace the existing ones</small>
-              </div>
-            </div>
-            
-            <div style="margin-bottom: 10px;">
-              <small style="color: #666; font-style: italic;">
-                Selected mapping will be temporarily removed until you click Update. Both canonical form and variants can be modified.
-              </small>
-            </div>
-            
-            <button id="updateMappingButton" disabled style="padding: 10px 20px; background: #ffc107; color: #212529; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-              Update Mapping
-            </button>
-          </div>      <!-- 3. Remove Mapping Section -->
-      <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: white;">
-        <h3 style="margin-top: 0; margin-bottom: 15px;">3. Remove Mapping</h3>
-        
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px;">
-          <div>
-            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Select Mapping to Remove</label>
-            <select id="removeMappingSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-              <option value="">-- Select a mapping to remove --</option>
-            </select>
-            <small style="color: #666;">This action cannot be undone</small>
-          </div>
-          <div style="display: flex; align-items: end;">
-            <button id="removeMappingButton" disabled style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%;">
-              Remove
-            </button>
-          </div>
-        </div>
-      </div>
-
-          <!-- Management Buttons -->
-          <div style="margin-bottom: 20px; display: flex; gap: 10px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">
-            <button id="refreshTagMappingsButton" style="padding: 10px 20px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">
-              Refresh Display
-            </button>
-            <button id="resetTagMappingsButton" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
-              Reset to Defaults
-            </button>
-          </div>      <!-- Current Mappings Display -->
-      <div>
-        <h3 style="font-weight: 500; margin-bottom: 10px;">Current Tag Mappings</h3>
-        <div id="tagMappingsDisplay" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px; background: white;">
-          <p style="color: #666;">Loading tag mappings...</p>
-        </div>
       </div>
     </div>
 

@@ -348,7 +348,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   data.tags = tagMapper.normalizeTags(data.tags);
                 }
               } catch (tagError) {
-                console.warn('Tag normalization failed, using original tags:', tagError);
+                // Tag normalization failed - use original tags
                 // Continue with original tags if normalization fails
               }
             }

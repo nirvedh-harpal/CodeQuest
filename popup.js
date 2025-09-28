@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       try {
         await tagMapper.initialize();
       } catch (error) {
-        console.warn('TagMapper initialization failed:', error);
+        // Tag mapper is optional - continue without it
       }
     }
 
@@ -123,17 +123,13 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function setupTagNormalizationPreview() {
-    console.log("Setting up tag normalization preview...");
-    
     const previewDiv = document.getElementById("tagNormalizationPreview");
     if (!previewDiv) {
-      console.log("Preview div not found, retrying...");
       setTimeout(() => setupTagNormalizationPreview(), 100);
       return;
     }
 
     if (!window.tagsDropdown) {
-      console.log("Tags dropdown not ready, retrying...");
       setTimeout(() => setupTagNormalizationPreview(), 100);
       return;
     }
@@ -143,24 +139,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     const inputElement = tagsContainer?.querySelector("input");
     
     if (!inputElement) {
-      console.log("Input element not found, retrying...");
       setTimeout(() => setupTagNormalizationPreview(), 100);
       return;
     }
 
     // Check if tagMapper is properly initialized
     if (typeof tagMapper === 'undefined' || !tagMapper.reverseMap) {
-      console.log("TagMapper not ready, retrying...");
       setTimeout(() => setupTagNormalizationPreview(), 200);
       return;
     }
 
-    console.log("Found input element and tagMapper, setting up event listeners");
-
     // Add event listener for real-time tag normalization preview
     inputElement.addEventListener("input", () => {
       const userInput = inputElement.value.trim();
-      console.log("User input:", userInput);
       
       if (!userInput) {
         previewDiv.style.display = "none";
@@ -196,10 +187,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             previewDiv.style.color = "#856404";
           }
         } catch (error) {
-          console.error("Error getting canonical form preview:", error);
+          // Silent error handling for tag preview
         }
       } else {
-        console.log("TagMapper not available or method missing");
+        // TagMapper not available - continue without preview
       }
     });
 
@@ -209,8 +200,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         previewDiv.style.display = "none";
       }, 300);
     });
-
-    console.log("Tag normalization preview setup completed successfully");
   }
 
   function updateDropdowns(options) {
@@ -329,7 +318,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     normalizedTags = tagMapper.normalizeTags(tags);
                   }
                 } catch (error) {
-                  console.warn('Tag normalization failed, using original tags:', error);
+                  // Tag normalization failed - use original tags
                 }
                 
                 window.tagsDropdown.clear();
@@ -464,7 +453,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             const mergedTags = [...new Set([...canonicalTags, ...(newOptions.tags || [])])].sort();
             newOptions.tags = mergedTags;
           } catch (error) {
-            console.warn('Could not merge canonical tags:', error);
+            // Could not merge canonical tags - use original tags
           }
         }
 
@@ -596,7 +585,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         defaultFolder = result.defaultFolder;
       }
     } catch (error) {
-      console.error('Error loading default folder setting:', error);
+      // Error loading folder setting - use defaults
     }
     
     const folder = folderValues.length > 0 ? folderValues[0] : defaultFolder;
@@ -609,8 +598,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       try {
         normalizedTags = tagMapper.normalizeTags(rawTags);
       } catch (error) {
-        console.warn('Could not normalize tags:', error);
-        normalizedTags = rawTags; // Use original tags if normalization fails
+        // Tag normalization failed - use original tags
+        normalizedTags = rawTags;
       }
     }
 

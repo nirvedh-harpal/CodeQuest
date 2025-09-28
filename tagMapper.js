@@ -53,17 +53,21 @@ class TagMapper {
         "stack",
         "stacks",
         "Stack",
-        "Stacks",
-        "stack and queue",
-        "stacks and queues",
-        "Stack And Queue",
-        "Stacks And Queues"
+        "Stacks"
       ],
       "queue": [
         "queue",
         "queues",
         "Queue",
         "Queues"
+      ],
+      "stack-and-queue": [
+        "stack and queue",
+        "stacks and queues",
+        "Stack And Queue",
+        "Stacks And Queues",
+        "stack & queue",
+        "Stack & Queue"
       ],
       "deque": [
         "deque",
@@ -80,12 +84,6 @@ class TagMapper {
         "heaps",
         "Heap",
         "Heaps",
-        "heap (priority queue)",
-        "heap priority queue",
-        "priority queue",
-        "priority queues",
-        "Heap (Priority Queue)",
-        "Heap (Priority Queues)",
         "heaps and maps",
         "Heaps And Maps"
       ],
@@ -97,7 +95,11 @@ class TagMapper {
         "Priority Queue",
         "Priority Queues",
         "priorityqueue",
-        "Priorityqueue"
+        "Priorityqueue",
+        "heap (priority queue)",
+        "heap priority queue",
+        "Heap (Priority Queue)",
+        "Heap (Priority Queues)"
       ],
       "tree": [
         "tree",
@@ -163,7 +165,6 @@ class TagMapper {
         "Binary Indexed Tree",
         "Binary Indexed Trees",
         "BIT",
-        "bit",
         "Fenwick",
         "Fenwick Tree",
         "Fenwick Trees"
@@ -218,8 +219,7 @@ class TagMapper {
         "depth first search",
         "depth-first search",
         "Depth First Search",
-        "Depth-First Search",
-        "dfs and similar"
+        "Depth-First Search"
       ],
       "bfs": [
         "bfs",
@@ -412,19 +412,46 @@ class TagMapper {
         "combinatorics",
         "Combinatorics",
         "combinatorial",
-        "Combinatorial",
+        "Combinatorial"
+      ],
+      "permutation": [
+        "permutation",
+        "permutations",
+        "Permutation",
+        "Permutations"
+      ],
+      "combination": [
+        "combination",
+        "combinations",
+        "Combination",
+        "Combinations"
+      ],
+      "permutation-and-combination": [
         "permutation & combination",
         "permutation and combination",
         "Permutation & Combination",
-        "Permutation and Combination"
+        "Permutation and Combination",
+        "permutations & combinations",
+        "permutations and combinations",
+        "Permutations & Combinations",
+        "Permutations and Combinations"
       ],
       "probability": [
         "probability",
         "probabilities",
+        "Probability"
+      ],
+      "statistics": [
+        "statistics",
+        "Statistics",
+        "statistical",
+        "Statistical"
+      ],
+      "probability-and-statistics": [
         "probability and statistics",
         "Probability and Statistics",
-        "Probability",
-        "Statistics"
+        "probability & statistics",
+        "Probability & Statistics"
       ],
       "geometry": [
         "geometry",
@@ -447,11 +474,19 @@ class TagMapper {
         "Bitmask",
         "Bitmasks",
         "bit mask",
-        "bit masks",
+        "bit masks"
+      ],
+      "bit-manipulation": [
         "bit manipulation",
+        "bit-manipulation",
         "Bit Manipulation",
+        "Bit-Manipulation",
         "bit magic",
-        "Bit Magic"
+        "Bit Magic",
+        "bitwise operations",
+        "Bitwise Operations",
+        "bitwise",
+        "Bitwise"
       ],
       "binary-representation": [
         "binary representation",
@@ -659,9 +694,13 @@ class TagMapper {
       ],
       "design": [
         "design",
-        "Design",
+        "Design"
+      ],
+      "system-design": [
         "system design",
-        "System Design"
+        "System Design",
+        "system-design",
+        "System-Design"
       ],
       "data-stream": [
         "data stream",
@@ -728,12 +767,6 @@ class TagMapper {
         "Anagram",
         "Anagrams"
       ],
-      "permutation": [
-        "permutation",
-        "permutations",
-        "Permutation",
-        "Permutations"
-      ],
       "subset": [
         "subset",
         "subsets",
@@ -786,17 +819,25 @@ class TagMapper {
         "Schedules",
         "Schedule"
       ],
-      "c-cpp": [
-        "c/c++",
-        "C/C++",
+      "c": [
         "c",
-        "C",
+        "C"
+      ],
+      "cpp": [
         "cpp",
         "CPP",
         "c++",
         "C++",
         "c plus plus",
         "C Plus Plus"
+      ],
+      "c-and-cpp": [
+        "c/c++",
+        "C/C++",
+        "c and c++",
+        "C and C++",
+        "c & c++",
+        "C & C++"
       ],
       "java": [
         "java",
@@ -841,9 +882,13 @@ class TagMapper {
         "functions",
         "function",
         "Functions",
-        "Function",
+        "Function"
+      ],
+      "methods": [
         "methods",
-        "Methods"
+        "method",
+        "Methods",
+        "Method"
       ],
       "operators": [
         "operators",
